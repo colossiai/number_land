@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Decimals</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    .pmbtn { border: none; background: #eef5ff; color: var(--brand-dk); font-weight: 800;
+      width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-size: 1.1rem; }
+    .pmbtn:hover { background: var(--brand); color: #fff; }
+    .stepper { display: inline-flex; align-items: center; gap: 6px; }
+    .stepval { font-size: 1.3rem; font-weight: 800; color: var(--brand-dk); min-width: 1.4em; text-align: center; }
+    .subhead { color: var(--brand-dk); font-size: 1.05rem; font-weight: 800; margin: 6px 0; }
+    .divline { border: none; border-top: 2px dashed var(--line); margin: 26px 0; }
+    .dcell { transition: fill .25s; }
+    .marker { transition: cx .6s cubic-bezier(.5,0,.3,1.3); }
+  </style>
+</head>
+<body data-lesson="7">
+  <main>
+    <section class="panel">
+      <h2 data-i18n="ui.concept"></h2>
+      <div class="with-mascot">
+        <div data-mascot="left"></div>
+        <div class="copy">
+          <p class="lead" data-i18n="l7.intro"></p>
+          <p data-i18n="l7.intro2"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.explore"></h2>
+
+      <div class="subhead" data-i18n="l7.sqTitle"></div>
+      <p class="muted" data-i18n="l7.sqHint"></p>
+      <div class="stage">
+        <svg id="dec-grids" viewBox="0 0 420 120" width="420" height="120"></svg>
+      </div>
+      <div class="controls" id="dec-controls"></div>
+      <div class="readout" id="dec-read"></div>
+      <div class="muted" id="dec-expand"></div>
+      <div class="stage">
+        <svg id="dec-line" viewBox="0 0 420 60" width="420" height="60"></svg>
+      </div>
+
+      <hr class="divline">
+
+      <div class="subhead" data-i18n="l7.rdTitle"></div>
+      <p class="muted" data-i18n="l7.rdHint"></p>
+      <div class="controls">
+        <label style="display:inline-flex;align-items:center;gap:8px;">
+          <span class="muted" id="rd-lab"></span>
+          <input type="range" id="rd-range" min="0" max="999" value="347" style="width:240px;">
+        </label>
+        <button class="btn accent" id="rd-go" data-i18n="l7.round"></button>
+      </div>
+      <div class="stage">
+        <svg id="rd-line" viewBox="0 0 420 80" width="420" height="80"></svg>
+      </div>
+      <div class="readout" id="rd-read"></div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.example"></h2>
+      <p data-i18n="l7.exTip"></p>
+      <div class="stage">
+        <svg id="ex-grid" viewBox="0 0 420 110" width="420" height="110"></svg>
+      </div>
+      <div class="row">
+        <button class="btn accent" id="ex-play" data-i18n="ui.play"></button>
+      </div>
+      <p class="readout" id="ex-line" style="font-size:1.1rem"></p>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.tryIt"></h2>
+      <div id="quiz"></div>
+    </section>
+  </main>
+
+  <script src="../../assets/js/lessons-data.js"></script>
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/widgets.js"></script>
+  <script src="../../assets/js/mascot.js"></script>
+  <script src="../../assets/js/lesson.js"></script>
+  <script>
+  (function () {
+    var NS = "http://www.w3.org/2000/svg";
+    I18N.register({
+      "l7.intro":   { en: "A <b>decimal</b> shows parts of a whole using a decimal point. The first place after the point is <b>tenths</b> (0.1), the second is <b>hundredths</b> (0.01).",
+                      zh: "<b>小數</b>用小數點表示整體的一部分。小數點後第一位是<b>十分位</b>（0.1），第二位是<b>百分位</b>（0.01）。" },
+      "l7.intro2":  { en: "Picture one big square as 1 whole, split into 100 small squares. Each column is one tenth; each tiny square is one hundredth.",
+                      zh: "把一個大正方形看成 1 個整體，分成 100 個小格。每一直行是十分之一，每一小格是百分之一。" },
+      "l7.sqTitle": { en: "Build a decimal with squares", zh: "用方格組成小數" },
+      "l7.sqHint":  { en: "Use − / + to set ones, tenths and hundredths. Columns fill for tenths, single cells for hundredths.",
+                      zh: "用 − / + 設定個位、十分位、百分位。十分位填整行，百分位填單格。" },
+      "l7.ones":    { en: "ones", zh: "個位" },
+      "l7.tenths":  { en: "tenths", zh: "十分位" },
+      "l7.hundredths": { en: "hundredths", zh: "百分位" },
+      "l7.rdTitle": { en: "Rounding on a number line", zh: "在數線上四捨五入" },
+      "l7.rdHint":  { en: "Slide the point. The midpoint is the deciding line — past halfway rounds up. Press Round to snap to the nearest whole.",
+                      zh: "拖動圓點。中點就是分界線──過了一半就進位。按「四捨五入」跳到最近的整數。" },
+      "l7.round":   { en: "Round ▶", zh: "四捨五入 ▶" },
+      "l7.value":   { en: "value", zh: "數值" },
+      "l7.exTip":   { en: "Build 2.45 and read each place value.", zh: "組成 2.45，讀出每個位值。" }
+    });
+
+    function fmtDec(h) { // h = total hundredths -> string like "1.37","2","0.4"
+      var v = h / 100;
+      var s = v.toFixed(2);
+      s = s.replace(/0$/, "").replace(/0$/, "").replace(/\.$/, "");
+      return s;
+    }
+
+    // ---- grid helper (10x10, column-major fill) ----
+    function grid(svg, x, y, size, filled, color) {
+      var cell = size / 10;
+      for (var c = 0; c < 10; c++) {
+        for (var r = 0; r < 10; r++) {
+          var idx = c * 10 + r;
+          var rc = document.createElementNS(NS, "rect");
+          rc.setAttribute("class", "dcell");
+          rc.setAttribute("x", x + c * cell); rc.setAttribute("y", y + r * cell);
+          rc.setAttribute("width", cell - 0.5); rc.setAttribute("height", cell - 0.5);
+          rc.setAttribute("fill", idx < filled ? color : "#eef5ff");
+          rc.setAttribute("stroke", "#cdd8ee"); rc.setAttribute("stroke-width", "0.5");
+          svg.appendChild(rc);
+        }
+      }
+      var frame = document.createElementNS(NS, "rect");
+      frame.setAttribute("x", x); frame.setAttribute("y", y); frame.setAttribute("width", size); frame.setAttribute("height", size);
+      frame.setAttribute("fill", "none"); frame.setAttribute("stroke", "#3a6fd0"); frame.setAttribute("stroke-width", "2");
+      svg.appendChild(frame);
+    }
+
+    // =================== Tool A: decimal squares ===================
+    var dec = { ones: 1, tenths: 3, hundredths: 7 };
+    var decCtrls = document.getElementById("dec-controls");
+    function stepper(getLabel, min, max, getv, setv) {
+      var wrap = document.createElement("span"); wrap.className = "stepper";
+      var lab = document.createElement("span"); lab.className = "muted";
+      var dn = document.createElement("button"); dn.className = "pmbtn"; dn.textContent = "−";
+      var v = document.createElement("span"); v.className = "stepval"; v.textContent = getv();
+      var up = document.createElement("button"); up.className = "pmbtn"; up.textContent = "+";
+      function refresh() { v.textContent = getv(); }
+      dn.addEventListener("click", function () { setv(Math.max(min, getv() - 1)); refresh(); renderDec(); });
+      up.addEventListener("click", function () { setv(Math.min(max, getv() + 1)); refresh(); renderDec(); });
+      wrap.appendChild(lab); wrap.appendChild(dn); wrap.appendChild(v); wrap.appendChild(up);
+      return { el: wrap, renderLabel: function () { lab.textContent = getLabel(); }, refresh: refresh };
+    }
+    var sOnes = stepper(function () { return I18N.t("l7.ones"); }, 0, 2, function () { return dec.ones; }, function (x) { dec.ones = x; });
+    var sTen = stepper(function () { return I18N.t("l7.tenths"); }, 0, 9, function () { return dec.tenths; }, function (x) { dec.tenths = x; });
+    var sHun = stepper(function () { return I18N.t("l7.hundredths"); }, 0, 9, function () { return dec.hundredths; }, function (x) { dec.hundredths = x; });
+    decCtrls.appendChild(sOnes.el); decCtrls.appendChild(sTen.el); decCtrls.appendChild(sHun.el);
+
+    function renderDec() {
+      var svg = document.getElementById("dec-grids"); svg.innerHTML = "";
+      var size = 92, gap = 14, x = 6;
+      for (var i = 0; i < dec.ones; i++) { grid(svg, x, 10, size, 100, "#5b9bf3"); x += size + gap; }
+      grid(svg, x, 10, size, dec.tenths * 10 + dec.hundredths, "#ff8fb1");
+      var h = dec.ones * 100 + dec.tenths * 10 + dec.hundredths;
+      document.getElementById("dec-read").textContent = I18N.t("l7.value") + " = " + fmtDec(h);
+      var parts = [];
+      if (dec.ones) parts.push("" + dec.ones);
+      if (dec.tenths) parts.push("0." + dec.tenths);
+      if (dec.hundredths) parts.push("0.0" + dec.hundredths);
+      document.getElementById("dec-expand").textContent = (parts.join(" + ") || "0") + " = " + fmtDec(h);
+      // number line
+      var ln = document.getElementById("dec-line"); ln.innerHTML = "";
+      var maxW = dec.ones + 1, x0 = 20, x1 = 400, span = x1 - x0;
+      line(ln, x0, 40, x1, 40, "#3a6fd0", 2);
+      for (var w = 0; w <= maxW; w++) {
+        var tx = x0 + (w / maxW) * span;
+        line(ln, tx, 32, tx, 48, "#3a6fd0", 2);
+        text(ln, tx, 26, "" + w, 11, "#5a6b85");
+      }
+      var px = x0 + (h / 100 / maxW) * span;
+      var dot = document.createElementNS(NS, "circle");
+      dot.setAttribute("cx", px); dot.setAttribute("cy", 40); dot.setAttribute("r", 7); dot.setAttribute("fill", "#ff8fb1");
+      dot.setAttribute("stroke", "#e85f8c"); dot.setAttribute("stroke-width", "2");
+      ln.appendChild(dot);
+    }
+
+    function line(svg, x1, y1, x2, y2, color, w) {
+      var l = document.createElementNS(NS, "line");
+      l.setAttribute("x1", x1); l.setAttribute("y1", y1); l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+      l.setAttribute("stroke", color); l.setAttribute("stroke-width", w); l.setAttribute("stroke-linecap", "round");
+      svg.appendChild(l); return l;
+    }
+    function text(svg, x, y, str, size, color) {
+      var t = document.createElementNS(NS, "text");
+      t.setAttribute("x", x); t.setAttribute("y", y); t.setAttribute("text-anchor", "middle");
+      t.setAttribute("font-size", size); t.setAttribute("fill", color); t.setAttribute("font-weight", "700");
+      t.textContent = str; svg.appendChild(t); return t;
+    }
+
+    // =================== Tool B: rounding ===================
+    var rdRange = document.getElementById("rd-range");
+    function renderRound(snapTo) {
+      var h = parseInt(rdRange.value, 10);  // hundredths 0..999
+      var val = h / 100;
+      var w = Math.floor(val), lo = w, hi = w + 1, mid = w + 0.5;
+      var nearestWhole = Math.round(val);
+      var nearestTenth = Math.round(val * 10) / 10;
+      var svg = document.getElementById("rd-line"); svg.innerHTML = "";
+      var x0 = 30, x1 = 390, span = x1 - x0, y = 44;
+      line(svg, x0, y, x1, y, "#3a6fd0", 2);
+      [lo, mid, hi].forEach(function (t, i) {
+        var tx = x0 + ((t - lo) / 1) * span;
+        line(svg, tx, y - 9, tx, y + 9, i === 1 ? "#ff9f43" : "#3a6fd0", i === 1 ? 2 : 2);
+        text(svg, tx, y - 14, (i === 1 ? (mid.toFixed(1)) : ("" + t)), 12, i === 1 ? "#e08a1e" : "#22324a");
+      });
+      var pos = (snapTo != null) ? snapTo : val;
+      var px = x0 + ((pos - lo) / 1) * span;
+      var dot = document.createElementNS(NS, "circle");
+      dot.setAttribute("class", "marker");
+      dot.setAttribute("cx", px); dot.setAttribute("cy", y); dot.setAttribute("r", 8); dot.setAttribute("fill", "#2fbf71");
+      dot.setAttribute("stroke", "#1c9c57"); dot.setAttribute("stroke-width", "2");
+      svg.appendChild(dot);
+      var en = fmtDec(h) + " rounds to " + nearestWhole + " (nearest whole), " + nearestTenth + " (nearest tenth).";
+      var zh = fmtDec(h) + " 約等於 " + nearestWhole + "（最接近的整數）、" + nearestTenth + "（最接近的十分位）。";
+      document.getElementById("rd-read").textContent = I18N.pick(en, zh);
+      return nearestWhole;
+    }
+    rdRange.addEventListener("input", function () { renderRound(); });
+    document.getElementById("rd-go").addEventListener("click", function () {
+      var nw = renderRound();
+      renderRound(nw); // animate the marker snapping to the nearest whole
+    });
+
+    // =================== Worked example 2.45 ===================
+    var exSvg = document.getElementById("ex-grid"), exLine = document.getElementById("ex-line");
+    function drawExStep(step) {
+      exSvg.innerHTML = "";
+      // build 2.45: two full grids + partial grid with 4 tenths + 5 hundredths = 45 cells
+      var size = 88, gap = 12, x = 6;
+      var onesShown = step >= 1 ? 2 : 0;
+      for (var i = 0; i < 2; i++) grid(exSvg, x + i * (size + gap), 8, size, i < onesShown ? 100 : 0, "#5b9bf3");
+      x = 6 + 2 * (size + gap);
+      var partial = step >= 2 ? 40 : 0;        // 4 tenths
+      partial += step >= 3 ? 5 : 0;            // 5 hundredths
+      grid(exSvg, x, 8, size, partial, "#ff8fb1");
+      var lines = [
+        { en: "We will build 2.45 step by step.", zh: "我們一步步組成 2.45。" },
+        { en: "The ones digit is 2 → two whole squares.", zh: "個位是 2 → 兩個完整方格。" },
+        { en: "The tenths digit is 4 → four columns (0.4).", zh: "十分位是 4 → 四直行（0.4）。" },
+        { en: "The hundredths digit is 5 → five small cells (0.05). So 2 + 0.4 + 0.05 = 2.45.", zh: "百分位是 5 → 五小格（0.05）。所以 2 + 0.4 + 0.05 = 2.45。" }
+      ];
+      exLine.textContent = I18N.pick(lines[step].en, lines[step].zh);
+    }
+    document.getElementById("ex-play").addEventListener("click", function () {
+      var s = 0; drawExStep(0);
+      var t = setInterval(function () { s++; if (s > 3) { clearInterval(t); return; } drawExStep(s); }, 1300);
+    });
+
+    // =================== Quiz ===================
+    NL.quiz(document.getElementById("quiz"), [
+      { prompt: { en: "In 3.46, what is the value of the digit 6?", zh: "在 3.46 中，數字 6 的數值是多少？" },
+        options: ["6", "0.6", "0.06", "0.006"], answer: 2,
+        explain: { en: "6 is in the hundredths place: 6 × 0.01 = 0.06.", zh: "6 在百分位：6 × 0.01 = 0.06。" } },
+      { prompt: { en: "Which decimal is the largest?", zh: "哪一個小數最大？" },
+        options: ["0.5", "0.45", "0.405", "0.09"], answer: 0,
+        explain: { en: "0.5 = 0.50, bigger than 0.45, 0.405 and 0.09.", zh: "0.5 = 0.50，比 0.45、0.405、0.09 都大。" } },
+      { prompt: { en: "Round 3.47 to the nearest whole number.", zh: "把 3.47 四捨五入到最接近的整數。" },
+        options: ["3", "4", "3.5", "3.4"], answer: 0,
+        explain: { en: "3.47 is less than 3.5, so it rounds down to 3.", zh: "3.47 小於 3.5，所以捨去成 3。" } }
+    ]);
+
+    // ---- language + initial render ----
+    function renderAll() {
+      sOnes.renderLabel(); sTen.renderLabel(); sHun.renderLabel();
+      document.getElementById("rd-lab").textContent = I18N.t("l7.value");
+      renderDec(); renderRound();
+    }
+    document.addEventListener("langchange", renderAll);
+    renderAll();
+    if (window.mascot) window.mascot.say("Decimals are tiny pieces of 1. Let's color them in!", "小數是 1 的小碎片，一起來塗色吧！");
+  })();
+  </script>
+</body>
+</html>

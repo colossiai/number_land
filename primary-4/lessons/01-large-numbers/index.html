@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Large Numbers</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    .pv-cols { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    .pv-col {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 8px 6px; min-width: 64px;
+    }
+    .pv-col.grp-edge { border-right: 3px dashed var(--accent); }
+    .pv-digit { font-size: 2.2rem; font-weight: 800; color: var(--brand-dk); font-variant-numeric: tabular-nums; }
+    .pv-step { border: none; background: #eef5ff; color: var(--brand-dk); font-weight: 800;
+      width: 34px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 1.1rem; }
+    .pv-step:hover { background: var(--brand); color: #fff; }
+    .pv-beads { display: flex; flex-direction: column-reverse; gap: 3px; height: 96px; justify-content: flex-start; }
+    .pv-bead { width: 16px; height: 16px; border-radius: 50%; background: var(--accent);
+      animation: pop .25s ease-out; }
+    .pv-label { font-size: 0.72rem; font-weight: 700; color: var(--ink-soft); text-align: center; }
+    .pv-place { font-size: 0.72rem; color: var(--brand); font-weight: 700; }
+    .digits-row { font-size: 2rem; font-weight: 800; letter-spacing: .12em; }
+    .digits-row .d { cursor: pointer; padding: 2px 6px; border-radius: 8px; color: var(--ink); }
+    .digits-row .d:hover { background: #eef5ff; }
+    .digits-row .d.on { background: var(--gold); color: var(--ink); }
+  </style>
+</head>
+<body data-lesson="1">
+  <main>
+    <section class="panel">
+      <h2 data-i18n="ui.concept"></h2>
+      <div class="with-mascot">
+        <div data-mascot="left"></div>
+        <div class="copy">
+          <p class="lead" data-i18n="l1.intro"></p>
+          <p data-i18n="l1.intro2"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.explore"></h2>
+      <p class="muted" data-i18n="l1.exploreHint"></p>
+      <div class="stage">
+        <div class="pv-cols" id="pv-cols"></div>
+      </div>
+      <div class="controls">
+        <button class="btn ghost" id="pv-random"></button>
+        <button class="btn ghost" id="pv-reset" data-i18n="ui.reset"></button>
+      </div>
+      <div class="readout" id="pv-number"></div>
+      <div class="muted" id="pv-words"></div>
+      <div class="muted" id="pv-zh"></div>
+      <div class="muted" id="pv-expanded"></div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.example"></h2>
+      <p data-i18n="l1.exTip"></p>
+      <div class="stage">
+        <div class="digits-row" id="ex-digits"></div>
+      </div>
+      <div class="row">
+        <button class="btn accent" id="ex-play" data-i18n="ui.play"></button>
+      </div>
+      <p class="readout" id="ex-line" style="font-size:1.1rem"></p>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.tryIt"></h2>
+      <div id="quiz"></div>
+    </section>
+  </main>
+
+  <script src="../../assets/js/lessons-data.js"></script>
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/widgets.js"></script>
+  <script src="../../assets/js/mascot.js"></script>
+  <script src="../../assets/js/lesson.js"></script>
+  <script>
+  (function () {
+    I18N.register({
+      "l1.intro":  { en: "Every digit in a number has a <b>place</b>, and its place tells you its <b>value</b>. The same digit 4 means 4 in the ones place, but 40,000 in the ten-thousands place!",
+                     zh: "數字中的每個數位都有自己的<b>位置</b>，位置決定它的<b>數值</b>。同樣是 4，在個位代表 4，在萬位卻代表 40000！" },
+      "l1.intro2": { en: "Tap the arrows below to build your own number and watch how each place adds up.",
+                     zh: "點下面的箭頭組成你自己的數，看看每個數位如何相加。" },
+      "l1.exploreHint": { en: "Use ▲ / ▼ to change each digit. The dashed line groups every 4 digits — that is the Chinese 萬 (ten-thousand) group.",
+                          zh: "用 ▲ / ▼ 改變每個數位。虛線每四位分一組，就是中文的「萬」位組。" },
+      "l1.exTip":  { en: "Tap any digit to see its place value, or press Play to walk through them.",
+                     zh: "點任何一個數字看它的位值，或按「播放」逐位講解。" },
+      "l1.words":  { en: "In words", zh: "英文讀法" },
+      "l1.zh":     { en: "Chinese reading", zh: "中文讀法" },
+      "l1.expanded": { en: "Expanded form", zh: "展開式" },
+      "l1.random": { en: "🎲 Random number", zh: "🎲 隨機數" },
+      "l1.place":  { en: "is in the {P} place, so its value is {V}.",
+                     zh: "在「{P}」位，所以它的數值是 {V}。" },
+      // place names
+      "p.100000":  { en: "hundred-thousands", zh: "十萬" },
+      "p.10000":   { en: "ten-thousands", zh: "萬" },
+      "p.1000":    { en: "thousands", zh: "千" },
+      "p.100":     { en: "hundreds", zh: "百" },
+      "p.10":      { en: "tens", zh: "十" },
+      "p.1":       { en: "ones", zh: "個" }
+    });
+
+    var PLACES = [100000, 10000, 1000, 100, 10, 1];
+    var digits = [0, 4, 7, 8, 3, 0]; // start at 47,830 (matches the example)
+
+    // ---------- number-to-words ----------
+    var ONES = ["zero","one","two","three","four","five","six","seven","eight","nine","ten",
+      "eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"];
+    var TENS = ["","","twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];
+    function below1000(n) {
+      var s = [];
+      if (n >= 100) { s.push(ONES[Math.floor(n/100)] + " hundred"); n %= 100; }
+      if (n >= 20) { s.push(TENS[Math.floor(n/10)] + (n%10 ? "-" + ONES[n%10] : "")); }
+      else if (n > 0) { s.push(ONES[n]); }
+      return s.join(" ");
+    }
+    function enWords(n) {
+      if (n === 0) return "zero";
+      var th = Math.floor(n/1000), rest = n % 1000, parts = [];
+      if (th) parts.push(below1000(th) + " thousand");
+      if (rest) parts.push(below1000(rest));
+      return parts.join(" ");
+    }
+    // ---------- Chinese reading ----------
+    var CD = ["零","一","二","三","四","五","六","七","八","九"];
+    var CU = ["","十","百","千"];
+    function read4(n) {
+      var s = "", zero = false, started = false;
+      for (var p = 3; p >= 0; p--) {
+        var v = Math.floor(n / Math.pow(10, p)) % 10;
+        if (v === 0) { if (started) zero = true; }
+        else { if (zero) { s += "零"; zero = false; } s += CD[v] + CU[p]; started = true; }
+      }
+      if (s.indexOf("一十") === 0) s = s.slice(1);
+      return s;
+    }
+    function zhRead(n) {
+      if (n === 0) return "零";
+      var high = Math.floor(n/10000), low = n % 10000;
+      if (high === 0) return read4(low);
+      var s = read4(high) + "萬";
+      if (low === 0) return s;
+      if (low < 1000) s += "零";
+      return s + read4(low);
+    }
+
+    // ---------- build columns ----------
+    var colsHost = document.getElementById("pv-cols");
+    var digitEls = [], beadEls = [];
+    function makeCols() {
+      colsHost.innerHTML = "";
+      PLACES.forEach(function (pv, i) {
+        var e = Math.round(Math.log(pv) / Math.LN10); // exponent: 100000 -> 5
+        var col = document.createElement("div");
+        col.className = "pv-col" + (e % 4 === 0 && e > 0 ? " grp-edge" : "");
+        var up = document.createElement("button"); up.className = "pv-step"; up.textContent = "▲";
+        var dig = document.createElement("div"); dig.className = "pv-digit";
+        var down = document.createElement("button"); down.className = "pv-step"; down.textContent = "▼";
+        var beads = document.createElement("div"); beads.className = "pv-beads";
+        var placeEl = document.createElement("div"); placeEl.className = "pv-place";
+        placeEl.setAttribute("data-i18n", "p." + pv);
+        var label = document.createElement("div"); label.className = "pv-label";
+        label.textContent = NL.fmt(pv);
+        up.addEventListener("click", function () { setDigit(i, (digits[i] + 1) % 10); });
+        down.addEventListener("click", function () { setDigit(i, (digits[i] + 9) % 10); });
+        col.appendChild(up); col.appendChild(dig); col.appendChild(down);
+        col.appendChild(beads); col.appendChild(placeEl); col.appendChild(label);
+        colsHost.appendChild(col);
+        digitEls[i] = dig; beadEls[i] = beads;
+      });
+    }
+    function setDigit(i, v) { digits[i] = v; refresh(); }
+    function value() { return digits.reduce(function (a, d, i) { return a + d * PLACES[i]; }, 0); }
+
+    function refresh() {
+      digits.forEach(function (d, i) {
+        digitEls[i].textContent = d;
+        var beads = beadEls[i];
+        beads.innerHTML = "";
+        for (var k = 0; k < d; k++) {
+          var b = document.createElement("div"); b.className = "pv-bead"; beads.appendChild(b);
+        }
+      });
+      var n = value();
+      document.getElementById("pv-number").textContent = NL.fmt(n);
+      document.getElementById("pv-words").textContent = I18N.t("l1.words") + ": " + enWords(n);
+      document.getElementById("pv-zh").textContent = I18N.t("l1.zh") + ": " + zhRead(n);
+      var ex = PLACES.map(function (p, i) { return digits[i] ? NL.fmt(digits[i]*p) : null; })
+                     .filter(Boolean).join(" + ") || "0";
+      document.getElementById("pv-expanded").textContent = I18N.t("l1.expanded") + ": " + ex;
+    }
+
+    document.getElementById("pv-random").addEventListener("click", function () {
+      digits = PLACES.map(function () { return NL.rand(0, 9); });
+      refresh();
+      if (window.mascot) window.mascot.say("Whoa, " + NL.fmt(value()) + "!", "哇，" + NL.fmt(value()) + "！");
+    });
+    document.getElementById("pv-reset").addEventListener("click", function () {
+      digits = [0,0,0,0,0,0]; refresh();
+    });
+    document.getElementById("pv-random").setAttribute("data-i18n", "l1.random");
+
+    // ---------- worked example ----------
+    var EX = 47830;
+    var exDigits = String(EX).split("");
+    var exPlaces = [10000, 1000, 100, 10, 1];
+    var exHost = document.getElementById("ex-digits");
+    var exLine = document.getElementById("ex-line");
+    var exEls = [];
+    exDigits.forEach(function (d, i) {
+      var s = document.createElement("span"); s.className = "d"; s.textContent = d;
+      s.addEventListener("click", function () { showEx(i); });
+      exHost.appendChild(s); exEls.push(s);
+      if (i === 1) { var c = document.createElement("span"); c.textContent = ","; exHost.appendChild(c); }
+    });
+    function showEx(i) {
+      exEls.forEach(function (e, k) { e.classList.toggle("on", k === i); });
+      var d = parseInt(exDigits[i], 10), p = exPlaces[i];
+      var pname = I18N.t("p." + p);
+      var tmpl = I18N.t("l1.place").replace("{P}", pname).replace("{V}", NL.fmt(d * p));
+      exLine.textContent = (I18N.lang === "zh" ? ("數字 " + d + " ") : ("The digit " + d + " ")) + tmpl;
+    }
+    document.getElementById("ex-play").addEventListener("click", function () {
+      var i = 0;
+      (function step() {
+        if (i >= exDigits.length) { exEls.forEach(function (e){ e.classList.remove("on"); }); return; }
+        showEx(i); i++; setTimeout(step, 1100);
+      })();
+    });
+
+    // ---------- quiz ----------
+    NL.quiz(document.getElementById("quiz"), [
+      { prompt: { en: "In 58,236, what is the value of the digit 8?",
+                  zh: "在 58236 中，數字 8 的數值是多少？" },
+        options: [ "800", "8,000", "80,000", "8" ], answer: 1,
+        explain: { en: "8 sits in the thousands place: 8 × 1,000 = 8,000.",
+                   zh: "8 在千位：8 × 1000 = 8000。" } },
+      { prompt: { en: "Which number is “thirty thousand five hundred”?",
+                  zh: "哪一個數是「三萬零五百」？" },
+        options: [ "3,500", "30,500", "35,000", "300,500" ], answer: 1,
+        explain: { en: "30,000 + 500 = 30,500.", zh: "30000 + 500 = 30500。" } },
+      { prompt: { en: "How do we write 十二萬三千 in digits?",
+                  zh: "「十二萬三千」用數字怎麼寫？" },
+        options: [ "12,300", "123,000", "120,300", "1,230,000" ], answer: 1,
+        explain: { en: "十二萬 = 12 × 10,000 = 120,000, plus 三千 = 3,000, so 123,000.",
+                   zh: "十二萬 = 12 × 10000 = 120000，加三千 = 3000，所以是 123000。" } }
+    ]);
+
+    // initial render + keep dynamic text in sync with language
+    makeCols();
+    function redraw() { refresh(); }
+    document.addEventListener("langchange", function () {
+      refresh();
+      // refresh example line if a digit is highlighted
+      var on = exEls.findIndex ? exEls.findIndex(function(e){return e.classList.contains("on");}) : -1;
+      if (on >= 0) showEx(on);
+    });
+    refresh();
+    if (window.mascot) window.mascot.say("Hi! I'm Kazu. Let's build big numbers!", "嗨！我是數寶，一起來組成大數吧！");
+  })();
+  </script>
+</body>
+</html>

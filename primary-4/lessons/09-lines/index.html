@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Perpendicular &amp; Parallel Lines</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    .lines-svg { display: block; margin: 0 auto; cursor: grab; background: #fff; border-radius: 10px; }
+    .lines-svg:active { cursor: grabbing; }
+    .grid-line { stroke: #eef2fb; stroke-width: 1; }
+    .seg { stroke-width: 6; stroke-linecap: round; }
+    .seg.a { stroke: var(--brand); }
+    .seg.b { stroke: var(--accent); }
+    .seg.par { stroke: var(--good); }
+    .seg.perp { stroke: #7b5cff; }
+    .lhandle { fill: #fff; stroke: var(--ink-soft); stroke-width: 3; }
+    .relchip { font-size: 1.15rem; }
+  </style>
+</head>
+<body data-lesson="9">
+  <main>
+    <section class="panel">
+      <h2 data-i18n="ui.concept"></h2>
+      <div class="with-mascot">
+        <div data-mascot="left"></div>
+        <div class="copy">
+          <p class="lead" data-i18n="l9.intro"></p>
+          <p data-i18n="l9.intro2"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.explore"></h2>
+      <p class="muted center" data-i18n="l9.hint"></p>
+      <div class="stage">
+        <svg class="lines-svg" id="lines-svg" viewBox="0 0 400 280" width="400" height="280"></svg>
+      </div>
+      <div class="readout" id="lines-read"></div>
+      <div class="center"><span class="chip relchip" id="lines-chip"></span></div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.example"></h2>
+      <p data-i18n="l9.exTip"></p>
+      <div class="row">
+        <button class="btn accent" id="ex-play" data-i18n="ui.play"></button>
+      </div>
+      <p class="readout" id="ex-line" style="font-size:1.1rem"></p>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.tryIt"></h2>
+      <div id="quiz"></div>
+    </section>
+  </main>
+
+  <script src="../../assets/js/lessons-data.js"></script>
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/widgets.js"></script>
+  <script src="../../assets/js/mascot.js"></script>
+  <script src="../../assets/js/lesson.js"></script>
+  <script>
+  (function () {
+    I18N.register({
+      "l9.intro":  { en: "Two straight lines are <b>parallel</b> (∥) when they always stay the same distance apart and never meet — like railway tracks.",
+                     zh: "兩條直線若永遠保持相同距離、永不相交，就是<b>平行</b>（∥），就像鐵路軌道。" },
+      "l9.intro2": { en: "They are <b>perpendicular</b> (⊥) when they cross to make a right angle (90°), like the corner of a book.",
+                     zh: "若兩條直線相交成<b>直角</b>（90°），就是<b>垂直</b>（⊥），像書本的角。" },
+      "l9.hint":   { en: "Drag the white dots to move each line. Line them up to find ∥ and ⊥!",
+                     zh: "拖動白點移動每條線。把它們擺好，找出平行與垂直！" },
+      "l9.exTip":  { en: "Watch the pink line turn from parallel to perpendicular.",
+                     zh: "看粉紅線從平行轉到垂直。" },
+      "l9.angleBetween": { en: "Angle between the lines", zh: "兩線之間的夾角" },
+      "l9.parallel":  { en: "∥ Parallel!", zh: "∥ 平行！" },
+      "l9.perp":      { en: "⊥ Perpendicular!", zh: "⊥ 垂直！" },
+      "l9.neither":   { en: "Lines just crossing", zh: "只是相交" }
+    });
+
+    var SVGNS = "http://www.w3.org/2000/svg";
+    var svg = document.getElementById("lines-svg");
+    function E(tag, attrs) { var el = document.createElementNS(SVGNS, tag); for (var k in attrs) el.setAttribute(k, attrs[k]); return el; }
+
+    // grid
+    for (var gx = 0; gx <= 400; gx += 20) svg.appendChild(E("line", { x1: gx, y1: 0, x2: gx, y2: 280, "class": "grid-line" }));
+    for (var gy = 0; gy <= 280; gy += 20) svg.appendChild(E("line", { x1: 0, y1: gy, x2: 400, y2: gy, "class": "grid-line" }));
+
+    // two segments, defined by endpoints
+    var pts = {
+      a1: { x: 60, y: 80 },  a2: { x: 340, y: 120 },
+      b1: { x: 90, y: 220 }, b2: { x: 320, y: 200 }
+    };
+    var segA = E("line", { "class": "seg a" }); svg.appendChild(segA);
+    var segB = E("line", { "class": "seg b" }); svg.appendChild(segB);
+    var handles = {};
+    ["a1", "a2", "b1", "b2"].forEach(function (k) {
+      var h = E("circle", { r: 12, "class": "lhandle" }); svg.appendChild(h); handles[k] = h;
+    });
+
+    function lineAngle(p, q) { // 0..180, direction of the line
+      var a = Math.atan2(q.y - p.y, q.x - p.x) * 180 / Math.PI;
+      a = ((a % 180) + 180) % 180; return a;
+    }
+    function between(a, b) { var d = Math.abs(a - b) % 180; return Math.min(d, 180 - d); } // 0..90
+
+    function classify(diff) {
+      if (diff < 6) return "par";
+      if (diff > 84) return "perp";
+      return "none";
+    }
+
+    function draw() {
+      segA.setAttribute("x1", pts.a1.x); segA.setAttribute("y1", pts.a1.y);
+      segA.setAttribute("x2", pts.a2.x); segA.setAttribute("y2", pts.a2.y);
+      segB.setAttribute("x1", pts.b1.x); segB.setAttribute("y1", pts.b1.y);
+      segB.setAttribute("x2", pts.b2.x); segB.setAttribute("y2", pts.b2.y);
+      for (var k in handles) { handles[k].setAttribute("cx", pts[k].x); handles[k].setAttribute("cy", pts[k].y); }
+
+      var aA = lineAngle(pts.a1, pts.a2), aB = lineAngle(pts.b1, pts.b2);
+      var diff = between(aA, aB);
+      var cls = classify(diff);
+      segA.setAttribute("class", "seg a" + (cls === "par" ? " par" : cls === "perp" ? " perp" : ""));
+      segB.setAttribute("class", "seg b" + (cls === "par" ? " par" : cls === "perp" ? " perp" : ""));
+      document.getElementById("lines-read").textContent =
+        I18N.t("l9.angleBetween") + ": " + Math.round(diff) + "°";
+      var chip = document.getElementById("lines-chip");
+      chip.className = "chip relchip" + (cls === "none" ? "" : " good");
+      chip.textContent = cls === "par" ? I18N.t("l9.parallel") : cls === "perp" ? I18N.t("l9.perp") : I18N.t("l9.neither");
+    }
+
+    function svgPoint(evt) { var p = svg.createSVGPoint(); p.x = evt.clientX; p.y = evt.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
+    var drag = null;
+    svg.addEventListener("pointerdown", function (e) {
+      var p = svgPoint(e), best = null, bd = 1e9;
+      for (var k in pts) { var d = Math.hypot(pts[k].x - p.x, pts[k].y - p.y); if (d < bd) { bd = d; best = k; } }
+      if (bd < 26) { drag = best; svg.setPointerCapture(e.pointerId); }
+    });
+    svg.addEventListener("pointermove", function (e) {
+      if (!drag) return;
+      var p = svgPoint(e);
+      pts[drag].x = Math.max(6, Math.min(394, p.x));
+      pts[drag].y = Math.max(6, Math.min(274, p.y));
+      draw();
+    });
+    function endDrag() { drag = null; }
+    svg.addEventListener("pointerup", endDrag);
+    svg.addEventListener("pointercancel", endDrag);
+
+    // ===== worked example: rotate line B around its centre =====
+    var exLine = document.getElementById("ex-line");
+    var playing = false;
+    document.getElementById("ex-play").addEventListener("click", function () {
+      if (playing) return; playing = true;
+      // fix line A horizontal for clarity
+      pts.a1 = { x: 60, y: 140 }; pts.a2 = { x: 340, y: 140 };
+      var cx = 200, cy = 140, len = 110, t0 = null;
+      function frame(ts) {
+        if (t0 === null) t0 = ts;
+        var prog = Math.min(1, (ts - t0) / 3500);
+        var deg = prog * 90; var rad = deg * Math.PI / 180;
+        pts.b1 = { x: cx - len * Math.cos(rad), y: cy - len * Math.sin(rad) };
+        pts.b2 = { x: cx + len * Math.cos(rad), y: cy + len * Math.sin(rad) };
+        draw();
+        exLine.textContent = Math.round(deg) + "° — " +
+          (deg < 6 ? I18N.t("l9.parallel") : deg > 84 ? I18N.t("l9.perp") : I18N.t("l9.neither"));
+        if (prog < 1) requestAnimationFrame(frame); else playing = false;
+      }
+      requestAnimationFrame(frame);
+    });
+
+    // ===== quiz =====
+    NL.quiz(document.getElementById("quiz"), [
+      { prompt: { en: "Two lines that never meet and stay the same distance apart are…",
+                  zh: "兩條永不相交、距離不變的直線是…" },
+        options: [ { en: "parallel", zh: "平行" }, { en: "perpendicular", zh: "垂直" },
+                   { en: "neither", zh: "都不是" } ],
+        answer: 0, explain: { en: "Same distance, never meeting = parallel (∥).",
+                              zh: "距離相同、永不相交＝平行（∥）。" } },
+      { prompt: { en: "Perpendicular lines cross to make an angle of…", zh: "垂直線相交所成的角是…" },
+        options: [ "45°", "60°", "90°", "180°" ], answer: 2,
+        explain: { en: "Perpendicular means a right angle, 90°.", zh: "垂直就是直角，90°。" } },
+      { prompt: { en: "Line A points along 30° and line B along 120°. They are…",
+                  zh: "甲線方向 30°，乙線方向 120°，它們是…" },
+        options: [ { en: "parallel", zh: "平行" }, { en: "perpendicular", zh: "垂直" },
+                   { en: "neither", zh: "都不是" } ],
+        answer: 1, explain: { en: "120° − 30° = 90°, so they are perpendicular.",
+                              zh: "120° − 30° = 90°，所以垂直。" } }
+    ]);
+
+    draw();
+    document.addEventListener("langchange", draw);
+    if (window.mascot) window.mascot.say("Drag the dots — can you make the lines parallel?", "拖動小白點，你能把兩條線擺成平行嗎？");
+  })();
+  </script>
+</body>
+</html>

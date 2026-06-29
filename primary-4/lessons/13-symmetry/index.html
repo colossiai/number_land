@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Symmetry</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    #sym-canvas, #mir-canvas, #ex-canvas { background:#fff; border:2px solid var(--line); border-radius:10px; }
+    #mir-canvas { cursor: pointer; }
+    .axis-btn { font-size: 1.3rem; min-width: 48px; }
+    .axis-btn.found { background: var(--good); border-color: var(--good); color:#fff; }
+    .shape-pick { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:10px; }
+    .tool-tabs { display:flex; gap:8px; justify-content:center; margin-bottom:12px; }
+    .tool-tabs .btn.ghost.active { background: var(--brand); color:#fff; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body data-lesson="13">
+  <main>
+    <section class="panel">
+      <h2 data-i18n="ui.concept"></h2>
+      <div class="with-mascot">
+        <div data-mascot="left"></div>
+        <div class="copy">
+          <p class="lead" data-i18n-html="l13.intro"></p>
+          <p data-i18n-html="l13.intro2"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.explore"></h2>
+      <div class="tool-tabs">
+        <button class="btn ghost active" id="tab-find" data-i18n="l13.toolFind"></button>
+        <button class="btn ghost" id="tab-mirror" data-i18n="l13.toolMirror"></button>
+      </div>
+
+      <div id="find-tool">
+        <p class="muted" data-i18n="l13.findHint"></p>
+        <div class="shape-pick" id="shape-pick"></div>
+        <div class="stage">
+          <canvas id="sym-canvas" width="300" height="300"></canvas>
+        </div>
+        <div class="controls">
+          <button class="btn ghost axis-btn" data-axis="V" title="vertical">│</button>
+          <button class="btn ghost axis-btn" data-axis="H" title="horizontal">─</button>
+          <button class="btn ghost axis-btn" data-axis="D1" title="diagonal">╲</button>
+          <button class="btn ghost axis-btn" data-axis="D2" title="diagonal">╱</button>
+        </div>
+        <div class="readout" id="sym-count"></div>
+      </div>
+
+      <div id="mirror-tool" class="hidden">
+        <p class="muted" data-i18n="l13.mirrorHint"></p>
+        <div class="stage">
+          <canvas id="mir-canvas" width="400" height="320"></canvas>
+        </div>
+        <div class="controls"><button class="btn ghost" id="mir-clear" data-i18n="ui.reset"></button></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.example"></h2>
+      <p data-i18n="l13.exTip"></p>
+      <div class="stage"><canvas id="ex-canvas" width="260" height="260"></canvas></div>
+      <div class="row"><button class="btn accent" id="ex-play" data-i18n="ui.play"></button></div>
+      <p class="readout" id="ex-line" style="font-size:1.05rem"></p>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.tryIt"></h2>
+      <div id="quiz"></div>
+    </section>
+  </main>
+
+  <script src="../../assets/js/lessons-data.js"></script>
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/widgets.js"></script>
+  <script src="../../assets/js/mascot.js"></script>
+  <script src="../../assets/js/lesson.js"></script>
+  <script>
+  (function () {
+    I18N.register({
+      "l13.intro":  { en: "A shape has a <b>line of symmetry</b> when you can fold it along a line and the two halves match exactly — like a mirror.",
+                      zh: "如果能沿著一條線把圖形對摺，兩半完全重合，這條線就是<b>對稱軸</b>——就像鏡子一樣。" },
+      "l13.intro2": { en: "Some shapes have many lines of symmetry, some have one, and some have none at all.",
+                      zh: "有些圖形有很多條對稱軸，有些只有一條，有些則完全沒有。" },
+      "l13.toolFind":   { en: "Find lines of symmetry", zh: "找對稱軸" },
+      "l13.toolMirror": { en: "Mirror drawing", zh: "鏡像繪圖" },
+      "l13.findHint":   { en: "Pick a shape, then test each line. A real line of symmetry folds the halves onto each other.",
+                          zh: "選一個圖形，再測試每條線。真正的對稱軸能把兩半摺疊重合。" },
+      "l13.mirrorHint": { en: "Click squares on the left of the mirror — the reflection appears on the right automatically!",
+                          zh: "點擊鏡子左邊的方格——右邊會自動出現鏡像！" },
+      "l13.found":  { en: "Lines of symmetry found: {F} of {T}", zh: "已找到對稱軸：{F} / {T} 條" },
+      "l13.exTip":  { en: "A square can be folded 4 ways. Press Play to reveal all 4 lines of symmetry.",
+                      zh: "正方形可以四種方式對摺。按播放顯示全部 4 條對稱軸。" }
+    });
+
+    // ---- shapes (normalized coords, y down) + valid axes among V,H,D1,D2 ----
+    var SHAPES = {
+      square:   { en:"Square", zh:"正方形", pts:[[-1,-1],[1,-1],[1,1],[-1,1]], axes:["V","H","D1","D2"] },
+      rect:     { en:"Rectangle", zh:"長方形", pts:[[-1.25,-0.75],[1.25,-0.75],[1.25,0.75],[-1.25,0.75]], axes:["V","H"] },
+      triangle: { en:"Triangle", zh:"三角形", pts:[[0,-1.1],[1.05,0.9],[-1.05,0.9]], axes:["V"] },
+      house:    { en:"House", zh:"房子", pts:[[-0.95,0.95],[-0.95,-0.1],[0,-1.05],[0.95,-0.1],[0.95,0.95]], axes:["V"] },
+      para:     { en:"Parallelogram", zh:"平行四邊形", pts:[[-1.25,0.75],[0.6,0.75],[1.25,-0.75],[-0.6,-0.75]], axes:[] }
+    };
+    var current = "square", found = {};
+
+    var sc = document.getElementById("sym-canvas"), sctx = sc.getContext("2d");
+    var CX = sc.width/2, CY = sc.height/2, S = 95;
+    function tx(p){ return [CX + p[0]*S, CY + p[1]*S]; }
+    function reflect(p, axis){
+      if (axis==="V") return [-p[0], p[1]];
+      if (axis==="H") return [p[0], -p[1]];
+      if (axis==="D1") return [p[1], p[0]];
+      if (axis==="D2") return [-p[1], -p[0]];
+      return p;
+    }
+    function poly(ctx, pts, fill, stroke){
+      ctx.beginPath();
+      pts.forEach(function(p,i){ var c=tx(p); if(i===0)ctx.moveTo(c[0],c[1]); else ctx.lineTo(c[0],c[1]); });
+      ctx.closePath();
+      if (fill){ ctx.fillStyle=fill; ctx.fill(); }
+      if (stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=3; ctx.stroke(); }
+    }
+    function drawAxis(ctx, axis, color){
+      ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=3; ctx.setLineDash([7,5]);
+      var a,b;
+      if (axis==="V"){ a=[0,-1.4]; b=[0,1.4]; }
+      else if (axis==="H"){ a=[-1.4,0]; b=[1.4,0]; }
+      else if (axis==="D1"){ a=[-1.4,-1.4]; b=[1.4,1.4]; }
+      else { a=[-1.4,1.4]; b=[1.4,-1.4]; }
+      var ca=tx(a), cb=tx(b);
+      ctx.beginPath(); ctx.moveTo(ca[0],ca[1]); ctx.lineTo(cb[0],cb[1]); ctx.stroke(); ctx.restore();
+    }
+    function drawShape(testAxis, t){
+      var sh = SHAPES[current];
+      sctx.clearRect(0,0,sc.width,sc.height);
+      poly(sctx, sh.pts, "#cfe2ff", "#3a6fd0");
+      // already-found axes in green
+      Object.keys(found).forEach(function(ax){ if(found[ax]) drawAxis(sctx, ax, "#2fbf71"); });
+      if (testAxis){
+        var valid = sh.axes.indexOf(testAxis) >= 0;
+        drawAxis(sctx, testAxis, valid ? "#2fbf71" : "#e85f8c");
+        // animate the reflected (folded) copy sweeping over (t: 0..1)
+        var refl = sh.pts.map(function(p){ var r=reflect(p,testAxis); return [p[0]+(r[0]-p[0])*t, p[1]+(r[1]-p[1])*t]; });
+        poly(sctx, refl, valid ? "rgba(47,191,113,0.30)" : "rgba(232,95,140,0.28)",
+                   valid ? "#2fbf71" : "#e85f8c");
+      }
+    }
+    function updateCount(){
+      var sh = SHAPES[current];
+      var f = Object.keys(found).filter(function(a){return found[a];}).length;
+      document.getElementById("sym-count").textContent =
+        I18N.t("l13.found").replace("{F}", f).replace("{T}", sh.axes.length);
+    }
+    function selectShape(key){
+      current = key; found = {}; drawShape(null,0); updateCount();
+      document.querySelectorAll(".axis-btn").forEach(function(b){ b.classList.remove("found"); });
+      document.querySelectorAll("#shape-pick .btn").forEach(function(b){ b.classList.toggle("active", b.dataset.shape===key); });
+    }
+    // shape picker buttons
+    var pick = document.getElementById("shape-pick");
+    Object.keys(SHAPES).forEach(function(key){
+      var b = document.createElement("button"); b.className="btn ghost"; b.dataset.shape=key;
+      b.textContent = I18N.pick(SHAPES[key].en, SHAPES[key].zh);
+      b.addEventListener("click", function(){ selectShape(key); });
+      pick.appendChild(b);
+    });
+    // axis test buttons
+    document.querySelectorAll(".axis-btn").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var axis = btn.dataset.axis;
+        var valid = SHAPES[current].axes.indexOf(axis) >= 0;
+        var t = 0;
+        (function anim(){ t += 0.08; drawShape(axis, Math.min(t,1));
+          if (t < 1) requestAnimationFrame(anim);
+          else { if (valid){ found[axis]=true; btn.classList.add("found"); } updateCount();
+                 setTimeout(function(){ drawShape(null,0); }, 700); }
+        })();
+      });
+    });
+
+    // ---- mirror drawing tool ----
+    var mc = document.getElementById("mir-canvas"), mctx = mc.getContext("2d");
+    var MW = 10, MH = 8, MCELL = 40, MPAD = 0;
+    mc.width = MW*MCELL; mc.height = MH*MCELL;
+    var mgrid = []; for (var i=0;i<MH;i++) mgrid.push(new Array(MW).fill(0));
+    var MID = MW/2;
+    function mdraw(){
+      mctx.clearRect(0,0,mc.width,mc.height);
+      mctx.strokeStyle="#e3ecff"; mctx.lineWidth=1;
+      for (var c=0;c<=MW;c++){ mctx.beginPath(); mctx.moveTo(c*MCELL,0); mctx.lineTo(c*MCELL,mc.height); mctx.stroke(); }
+      for (var r=0;r<=MH;r++){ mctx.beginPath(); mctx.moveTo(0,r*MCELL); mctx.lineTo(mc.width,r*MCELL); mctx.stroke(); }
+      for (r=0;r<MH;r++) for (c=0;c<MW;c++) if (mgrid[r][c]){
+        mctx.fillStyle = c < MID ? "#5b9bf3" : "#ff8fb1";
+        mctx.fillRect(c*MCELL+2, r*MCELL+2, MCELL-4, MCELL-4);
+      }
+      // mirror line
+      mctx.strokeStyle="#e0a800"; mctx.lineWidth=4; mctx.setLineDash([8,6]);
+      mctx.beginPath(); mctx.moveTo(MID*MCELL,0); mctx.lineTo(MID*MCELL,mc.height); mctx.stroke(); mctx.setLineDash([]);
+    }
+    mc.addEventListener("click", function(ev){
+      var rect = mc.getBoundingClientRect();
+      var c = Math.floor((ev.clientX-rect.left)*(mc.width/rect.width)/MCELL);
+      var r = Math.floor((ev.clientY-rect.top)*(mc.height/rect.height)/MCELL);
+      if (r<0||r>=MH||c<0||c>=MW) return;
+      var v = mgrid[r][c] ? 0 : 1;
+      mgrid[r][c] = v; mgrid[r][MW-1-c] = v; // toggle cell and its mirror
+      mdraw();
+    });
+    document.getElementById("mir-clear").addEventListener("click", function(){
+      for (var r=0;r<MH;r++) mgrid[r].fill(0); mdraw();
+    });
+    mdraw();
+
+    // tool tabs
+    function showTool(which){
+      document.getElementById("find-tool").classList.toggle("hidden", which!=="find");
+      document.getElementById("mirror-tool").classList.toggle("hidden", which!=="mirror");
+      document.getElementById("tab-find").classList.toggle("active", which==="find");
+      document.getElementById("tab-mirror").classList.toggle("active", which==="mirror");
+    }
+    document.getElementById("tab-find").addEventListener("click", function(){ showTool("find"); });
+    document.getElementById("tab-mirror").addEventListener("click", function(){ showTool("mirror"); });
+
+    // ---- worked example: square's 4 axes ----
+    var ex = document.getElementById("ex-canvas"), ectx = ex.getContext("2d");
+    var EXC = ex.width/2, EYC = ex.height/2, ES = 85;
+    function extx(p){ return [EXC+p[0]*ES, EYC+p[1]*ES]; }
+    var SQ = [[-1,-1],[1,-1],[1,1],[-1,1]];
+    function exDraw(axesShown){
+      ectx.clearRect(0,0,ex.width,ex.height);
+      ectx.beginPath(); SQ.forEach(function(p,i){ var c=extx(p); i?ectx.lineTo(c[0],c[1]):ectx.moveTo(c[0],c[1]); });
+      ectx.closePath(); ectx.fillStyle="#cfe2ff"; ectx.fill(); ectx.strokeStyle="#3a6fd0"; ectx.lineWidth=3; ectx.stroke();
+      ectx.strokeStyle="#2fbf71"; ectx.lineWidth=3; ectx.setLineDash([7,5]);
+      var lines = { V:[[0,-1.3],[0,1.3]], H:[[-1.3,0],[1.3,0]], D1:[[-1.3,-1.3],[1.3,1.3]], D2:[[-1.3,1.3],[1.3,-1.3]] };
+      axesShown.forEach(function(ax){ var a=extx(lines[ax][0]), b=extx(lines[ax][1]);
+        ectx.beginPath(); ectx.moveTo(a[0],a[1]); ectx.lineTo(b[0],b[1]); ectx.stroke(); });
+      ectx.setLineDash([]);
+    }
+    var exLine = document.getElementById("ex-line"), exState={en:"",zh:""};
+    function setLine(en,zh){ exState={en:en,zh:zh}; exLine.textContent=I18N.pick(en,zh); }
+    exDraw([]); setLine("Press Play ▶","按播放 ▶");
+    document.getElementById("ex-play").addEventListener("click", function(){
+      var steps = [
+        { ax:["V"], en:"Fold top-to-bottom — the left and right halves match. That's 1 line.",
+                    zh:"上下對摺——左右兩半重合。這是第 1 條。" },
+        { ax:["V","H"], en:"Fold side-to-side too — 2 lines now.", zh:"再左右對摺——現在有 2 條。" },
+        { ax:["V","H","D1"], en:"Fold along a diagonal — still matches! 3 lines.", zh:"沿對角線對摺——仍然重合！3 條。" },
+        { ax:["V","H","D1","D2"], en:"And the other diagonal too. A square has 4 lines of symmetry!",
+                    zh:"另一條對角線也行。正方形有 4 條對稱軸！" }
+      ];
+      var i=0; (function step(){ if(i>=steps.length) return; exDraw(steps[i].ax); setLine(steps[i].en, steps[i].zh); i++; setTimeout(step,1500); })();
+    });
+
+    document.addEventListener("langchange", function(){
+      // re-render dynamic text + shape picker labels + counts
+      document.querySelectorAll("#shape-pick .btn").forEach(function(b){ b.textContent = I18N.pick(SHAPES[b.dataset.shape].en, SHAPES[b.dataset.shape].zh); });
+      updateCount();
+      exLine.textContent = I18N.pick(exState.en, exState.zh);
+    });
+
+    // ---- quiz ----
+    NL.quiz(document.getElementById("quiz"), [
+      { prompt: { en: "How many lines of symmetry does a square have?",
+                  zh: "正方形有多少條對稱軸？" },
+        options: ["1","2","4","8"], answer: 2,
+        explain: { en: "A square folds 4 ways: vertical, horizontal and both diagonals.",
+                   zh: "正方形有 4 種摺法：垂直、水平和兩條對角線。" } },
+      { prompt: { en: "How many lines of symmetry does a rectangle (not a square) have?",
+                  zh: "長方形（非正方形）有多少條對稱軸？" },
+        options: ["0","2","3","4"], answer: 1,
+        explain: { en: "Only the vertical and horizontal folds match — 2 lines.",
+                   zh: "只有垂直和水平對摺能重合——2 條。" } },
+      { prompt: { en: "Which capital letter has a line of symmetry?",
+                  zh: "哪一個大寫字母有對稱軸？" },
+        options: ["F","A","R","G"], answer: 1,
+        explain: { en: "“A” has a vertical line of symmetry; F, R and G do not.",
+                   zh: "「A」有垂直對稱軸；F、R、G 都沒有。" } }
+    ]);
+
+    if (window.mascot) window.mascot.say("Fold it and see if the halves match — that's symmetry!",
+                                          "把它對摺，看看兩半是否重合——這就是對稱！");
+  })();
+  </script>
+</body>
+</html>

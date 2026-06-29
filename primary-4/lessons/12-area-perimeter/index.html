@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Area &amp; Perimeter</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    .ap-wrap { display: inline-block; }
+    #ap-canvas, #ex-canvas { background: #fff; border-radius: 10px; border: 2px solid var(--line); cursor: pointer; }
+    .ap-stats { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
+    .ap-stat { background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 8px 18px; min-width: 120px; }
+    .ap-stat .k { font-size: .8rem; font-weight: 700; color: var(--ink-soft); }
+    .ap-stat .v { font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .ap-stat.area .v { color: var(--brand-dk); }
+    .ap-stat.peri .v { color: var(--accent-dk); }
+    .swatch { display:inline-block; width:14px; height:14px; border-radius:3px; vertical-align:middle; margin-right:5px; }
+  </style>
+</head>
+<body data-lesson="12">
+  <main>
+    <section class="panel">
+      <h2 data-i18n="ui.concept"></h2>
+      <div class="with-mascot">
+        <div data-mascot="left"></div>
+        <div class="copy">
+          <p class="lead" data-i18n-html="l12.intro"></p>
+          <p data-i18n-html="l12.intro2"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.explore"></h2>
+      <p class="muted" data-i18n="l12.hint"></p>
+      <div class="stage">
+        <div class="ap-wrap"><canvas id="ap-canvas" width="480" height="400"></canvas></div>
+        <div class="ap-stats">
+          <div class="ap-stat area"><div class="k"><span class="swatch" style="background:#cfe2ff"></span><span data-i18n="l12.area"></span></div><div class="v"><span id="ap-area">0</span> <small data-i18n="l12.sq"></small></div></div>
+          <div class="ap-stat peri"><div class="k"><span class="swatch" style="background:var(--accent)"></span><span data-i18n="l12.peri"></span></div><div class="v"><span id="ap-peri">0</span> <small data-i18n="l12.u"></small></div></div>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn ghost" id="ap-rect" data-i18n="l12.rect"></button>
+        <button class="btn ghost" id="ap-ell" data-i18n="l12.lshape"></button>
+        <button class="btn ghost" id="ap-clear" data-i18n="ui.reset"></button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.example"></h2>
+      <p data-i18n="l12.exTip"></p>
+      <div class="stage">
+        <canvas id="ex-canvas" width="420" height="300"></canvas>
+      </div>
+      <div class="row"><button class="btn accent" id="ex-play" data-i18n="ui.play"></button></div>
+      <p class="readout" id="ex-line" style="font-size:1.05rem"></p>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.tryIt"></h2>
+      <div id="quiz"></div>
+    </section>
+  </main>
+
+  <script src="../../assets/js/lessons-data.js"></script>
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/widgets.js"></script>
+  <script src="../../assets/js/mascot.js"></script>
+  <script src="../../assets/js/lesson.js"></script>
+  <script>
+  (function () {
+    I18N.register({
+      "l12.intro":  { en: "<b>Area</b> is the amount of surface a shape covers — we count the unit squares <i>inside</i> it.",
+                      zh: "<b>面積</b>是圖形蓋住的範圍——我們數圖形<i>裡面</i>的單位方格。" },
+      "l12.intro2": { en: "<b>Perimeter</b> is the distance all the way <i>around</i> the edge — we count the unit lengths on the boundary.",
+                      zh: "<b>周長</b>是沿著<i>邊界</i>走一圈的距離——我們數邊界上的單位長度。" },
+      "l12.hint":   { en: "Click or drag on the grid to fill or clear squares and build any shape. Watch area and perimeter update!",
+                      zh: "在方格上點擊或拖動來填滿或清除方格，砌出任何圖形。看面積與周長即時更新！" },
+      "l12.area":   { en: "Area", zh: "面積" },
+      "l12.peri":   { en: "Perimeter", zh: "周長" },
+      "l12.sq":     { en: "squares", zh: "格" },
+      "l12.u":      { en: "units", zh: "單位" },
+      "l12.rect":   { en: "Rectangle 5×3", zh: "長方形 5×3" },
+      "l12.lshape": { en: "L-shape", zh: "L 形" },
+      "l12.exTip":  { en: "Watch a rectangle then an L-shape being built. The orange outline is the perimeter.",
+                      zh: "看長方形與 L 形如何砌成。橙色邊界就是周長。" }
+    });
+
+    var COLS = 12, ROWS = 10, CELL = 38, PAD = 10;
+    var grid = [];
+    for (var r = 0; r < ROWS; r++) { grid.push(new Array(COLS).fill(0)); }
+
+    var cv = document.getElementById("ap-canvas");
+    cv.width = COLS * CELL + PAD * 2; cv.height = ROWS * CELL + PAD * 2;
+    var ctx = cv.getContext("2d");
+
+    function area() {
+      var a = 0;
+      for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) a += grid[r][c];
+      return a;
+    }
+    function perimeter() {
+      var p = 0;
+      for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) {
+        if (!grid[r][c]) continue;
+        if (r === 0 || !grid[r-1][c]) p++;
+        if (r === ROWS-1 || !grid[r+1][c]) p++;
+        if (c === 0 || !grid[r][c-1]) p++;
+        if (c === COLS-1 || !grid[r][c+1]) p++;
+      }
+      return p;
+    }
+    function draw() {
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      // grid lines
+      ctx.strokeStyle = "#e3ecff"; ctx.lineWidth = 1;
+      for (var c = 0; c <= COLS; c++) { ctx.beginPath(); ctx.moveTo(PAD + c*CELL, PAD); ctx.lineTo(PAD + c*CELL, PAD + ROWS*CELL); ctx.stroke(); }
+      for (var r = 0; r <= ROWS; r++) { ctx.beginPath(); ctx.moveTo(PAD, PAD + r*CELL); ctx.lineTo(PAD + COLS*CELL, PAD + r*CELL); ctx.stroke(); }
+      // filled cells
+      ctx.fillStyle = "#cfe2ff";
+      for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) if (grid[r][c]) {
+        ctx.fillRect(PAD + c*CELL + 1, PAD + r*CELL + 1, CELL - 2, CELL - 2);
+      }
+      // perimeter outline
+      ctx.strokeStyle = "#e85f8c"; ctx.lineWidth = 4; ctx.lineCap = "round";
+      for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) {
+        if (!grid[r][c]) continue;
+        var x = PAD + c*CELL, y = PAD + r*CELL;
+        if (r === 0 || !grid[r-1][c]) edge(x, y, x+CELL, y);
+        if (r === ROWS-1 || !grid[r+1][c]) edge(x, y+CELL, x+CELL, y+CELL);
+        if (c === 0 || !grid[r][c-1]) edge(x, y, x, y+CELL);
+        if (c === COLS-1 || !grid[r][c+1]) edge(x+CELL, y, x+CELL, y+CELL);
+      }
+    }
+    function edge(x1,y1,x2,y2){ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); }
+
+    function refresh() {
+      draw();
+      document.getElementById("ap-area").textContent = area();
+      document.getElementById("ap-peri").textContent = perimeter();
+    }
+
+    function cellAt(ev) {
+      var rect = cv.getBoundingClientRect();
+      var px = (ev.clientX - rect.left) * (cv.width / rect.width) - PAD;
+      var py = (ev.clientY - rect.top) * (cv.height / rect.height) - PAD;
+      var c = Math.floor(px / CELL), r = Math.floor(py / CELL);
+      if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return null;
+      return { r: r, c: c };
+    }
+    var painting = false, paintVal = 1;
+    cv.addEventListener("pointerdown", function (ev) {
+      var cell = cellAt(ev); if (!cell) return;
+      painting = true; paintVal = grid[cell.r][cell.c] ? 0 : 1;
+      grid[cell.r][cell.c] = paintVal; refresh();
+      cv.setPointerCapture(ev.pointerId);
+    });
+    cv.addEventListener("pointermove", function (ev) {
+      if (!painting) return; var cell = cellAt(ev); if (!cell) return;
+      if (grid[cell.r][cell.c] !== paintVal) { grid[cell.r][cell.c] = paintVal; refresh(); }
+    });
+    cv.addEventListener("pointerup", function () { painting = false; });
+    cv.addEventListener("pointerleave", function () { painting = false; });
+
+    function clearGrid() { for (var r = 0; r < ROWS; r++) grid[r].fill(0); }
+    function setRect(w, h, r0, c0) { clearGrid(); for (var r = 0; r < h; r++) for (var c = 0; c < w; c++) grid[r0+r][c0+c] = 1; }
+
+    document.getElementById("ap-rect").addEventListener("click", function () { setRect(5, 3, 3, 3); refresh(); });
+    document.getElementById("ap-ell").addEventListener("click", function () {
+      clearGrid();
+      for (var r = 2; r < 8; r++) grid[r][3] = grid[r][4] = 1;        // tall part
+      for (var c = 3; c < 9; c++) grid[6][c] = grid[7][c] = 1;        // foot
+      refresh();
+    });
+    document.getElementById("ap-clear").addEventListener("click", function () { clearGrid(); refresh(); });
+
+    setRect(5, 3, 3, 3); refresh();
+
+    // ---------- worked example ----------
+    var ex = document.getElementById("ex-canvas");
+    var exc = ex.getContext("2d");
+    var ECELL = 34, EC = 8, ER = 6, EPAD = 8;
+    var eg = []; for (var i = 0; i < ER; i++) eg.push(new Array(EC).fill(0));
+    function edraw() {
+      exc.clearRect(0, 0, ex.width, ex.height);
+      exc.strokeStyle = "#e3ecff"; exc.lineWidth = 1;
+      for (var c = 0; c <= EC; c++) { exc.beginPath(); exc.moveTo(EPAD+c*ECELL, EPAD); exc.lineTo(EPAD+c*ECELL, EPAD+ER*ECELL); exc.stroke(); }
+      for (var r = 0; r <= ER; r++) { exc.beginPath(); exc.moveTo(EPAD, EPAD+r*ECELL); exc.lineTo(EPAD+EC*ECELL, EPAD+r*ECELL); exc.stroke(); }
+      exc.fillStyle = "#cfe2ff";
+      for (r = 0; r < ER; r++) for (c = 0; c < EC; c++) if (eg[r][c]) exc.fillRect(EPAD+c*ECELL+1, EPAD+r*ECELL+1, ECELL-2, ECELL-2);
+      exc.strokeStyle = "#e85f8c"; exc.lineWidth = 3;
+      for (r = 0; r < ER; r++) for (c = 0; c < EC; c++) { if (!eg[r][c]) continue;
+        var x = EPAD+c*ECELL, y = EPAD+r*ECELL;
+        if (r===0||!eg[r-1][c]){exc.beginPath();exc.moveTo(x,y);exc.lineTo(x+ECELL,y);exc.stroke();}
+        if (r===ER-1||!eg[r+1][c]){exc.beginPath();exc.moveTo(x,y+ECELL);exc.lineTo(x+ECELL,y+ECELL);exc.stroke();}
+        if (c===0||!eg[r][c-1]){exc.beginPath();exc.moveTo(x,y);exc.lineTo(x,y+ECELL);exc.stroke();}
+        if (c===EC-1||!eg[r][c+1]){exc.beginPath();exc.moveTo(x+ECELL,y);exc.lineTo(x+ECELL,y+ECELL);exc.stroke();}
+      }
+    }
+    var exLine = document.getElementById("ex-line");
+    var exState = { en: "", zh: "" };
+    function setLine(en, zh) { exState = { en: en, zh: zh }; exLine.textContent = I18N.pick(en, zh); }
+    function clearEg(){ for (var r=0;r<ER;r++) eg[r].fill(0); }
+    var playing = false;
+    document.getElementById("ex-play").addEventListener("click", function () {
+      if (playing) return; playing = true;
+      var seq = [];
+      // build 5x3 rectangle row by row
+      clearEg(); edraw();
+      seq.push(function(){ for(var r=1;r<4;r++)for(var c=2;c<7;c++) eg[r][c]=1; edraw();
+        setLine("Rectangle 5 × 3: count the squares inside → Area = 15 squares.",
+                "長方形 5 × 3：數裡面的方格 → 面積 = 15 格。"); });
+      seq.push(function(){ edraw();
+        setLine("Walk around the edge: 5 + 3 + 5 + 3 = 16 → Perimeter = 16 units.",
+                "沿邊界走一圈：5 + 3 + 5 + 3 = 16 → 周長 = 16 單位。"); });
+      seq.push(function(){ for(var c=2;c<5;c++){ eg[4][c]=1; } edraw();
+        setLine("Add a 3×1 foot to make an L-shape. Area = 15 + 3 = 18 squares.",
+                "加一條 3×1 的腳變成 L 形。面積 = 15 + 3 = 18 格。"); });
+      seq.push(function(){ edraw();
+        setLine("The L-shape's outline is longer: Perimeter = 20 units. Area counts inside, perimeter counts around!",
+                "L 形的邊界更長：周長 = 20 單位。面積數裡面，周長數一圈！"); });
+      var i = 0; (function step(){ if(i>=seq.length){ playing=false; return; } seq[i](); i++; setTimeout(step, 1500); })();
+    });
+    clearEg(); edraw(); setLine("Press Play ▶", "按播放 ▶");
+
+    document.addEventListener("langchange", function () {
+      exLine.textContent = I18N.pick(exState.en, exState.zh);
+    });
+
+    // ---------- quiz ----------
+    NL.quiz(document.getElementById("quiz"), [
+      { prompt: { en: "A rectangle is 6 units long and 4 units wide. What is its area?",
+                  zh: "一個長方形長 6 單位、闊 4 單位。它的面積是多少？" },
+        options: ["10 sq units","20 sq units","24 sq units","48 sq units"], answer: 2,
+        explain: { en: "Area = length × width = 6 × 4 = 24 square units.",
+                   zh: "面積 = 長 × 闊 = 6 × 4 = 24 平方單位。" } },
+      { prompt: { en: "What is the perimeter of that 6 × 4 rectangle?",
+                  zh: "那個 6 × 4 長方形的周長是多少？" },
+        options: ["20 units","24 units","10 units","48 units"], answer: 0,
+        explain: { en: "Perimeter = 6 + 4 + 6 + 4 = 20 units.",
+                   zh: "周長 = 6 + 4 + 6 + 4 = 20 單位。" } },
+      { prompt: { en: "A 4×4 square has a 2×2 corner cut out. What is the area of the L-shape left?",
+                  zh: "一個 4×4 正方形被切走一個 2×2 的角。剩下的 L 形面積是多少？" },
+        options: ["8 sq units","12 sq units","16 sq units","20 sq units"], answer: 1,
+        explain: { en: "16 − 4 = 12 square units.", zh: "16 − 4 = 12 平方單位。" } }
+    ]);
+
+    if (window.mascot) window.mascot.say("Let's measure shapes! Inside is area, around is perimeter.",
+                                          "一起量度圖形吧！裡面是面積，一圈是周長。");
+  })();
+  </script>
+</body>
+</html>

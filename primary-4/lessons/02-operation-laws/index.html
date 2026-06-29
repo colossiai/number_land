@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Operations & Their Laws</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    .law-tabs { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px; }
+    .law-tab { border: 2px solid var(--line); background: #fff; color: var(--ink); font-weight: 700;
+      padding: 8px 16px; border-radius: 999px; cursor: pointer; font-family: inherit; font-size: .95rem; }
+    .law-tab.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+    #viz { display: block; margin: 0 auto; transition: transform .4s ease; }
+    #viz.spin { transform: rotate(90deg); }
+    .eq { font-size: 1.25rem; font-weight: 800; color: var(--brand-dk); font-variant-numeric: tabular-nums;
+      margin: 10px 0 4px; }
+    .desc { color: var(--ink-soft); }
+    .slider-row { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .slider-row b { color: var(--brand-dk); font-size: 1.1rem; }
+    .expr { font-size: 2rem; font-weight: 800; letter-spacing: .08em; }
+    .expr .tok { padding: 2px 8px; border-radius: 8px; }
+    .expr .tok.hot { background: var(--gold); }
+    .expr .tok.done { color: var(--good); }
+  </style>
+</head>
+<body data-lesson="2">
+  <main>
+    <section class="panel">
+      <h2 data-i18n="ui.concept"></h2>
+      <div class="with-mascot">
+        <div data-mascot="left"></div>
+        <div class="copy">
+          <p class="lead" data-i18n="l2.intro"></p>
+          <p data-i18n="l2.intro2"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.explore"></h2>
+      <div class="law-tabs">
+        <button class="law-tab active" data-law="comm" data-i18n="l2.comm"></button>
+        <button class="law-tab" data-law="assoc" data-i18n="l2.assoc"></button>
+        <button class="law-tab" data-law="distrib" data-i18n="l2.distrib"></button>
+      </div>
+      <p class="desc center" id="law-desc"></p>
+      <div class="stage">
+        <svg id="viz" width="380" height="220" viewBox="0 0 380 220" aria-hidden="true"></svg>
+      </div>
+      <div class="controls">
+        <div class="slider-row"><label>a = <b id="va">3</b></label>
+          <input type="range" id="sa" min="1" max="6" value="3"></div>
+        <div class="slider-row"><label>b = <b id="vb">4</b></label>
+          <input type="range" id="sb" min="1" max="6" value="4"></div>
+        <div class="slider-row" id="crow"><label>c = <b id="vc">2</b></label>
+          <input type="range" id="sc" min="1" max="5" value="2"></div>
+        <button class="btn ghost" id="swap" data-i18n="l2.swap"></button>
+      </div>
+      <div class="eq center" id="eq"></div>
+      <div class="center"><span class="chip good" data-i18n="l2.equal"></span></div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.example"></h2>
+      <p data-i18n="l2.exTip"></p>
+      <div class="stage">
+        <div class="expr" id="expr"></div>
+      </div>
+      <div class="row"><button class="btn accent" id="ex-play" data-i18n="ui.play"></button></div>
+      <p class="readout" id="ex-line" style="font-size:1.1rem"></p>
+      <p class="desc center" data-i18n="l2.exWrong"></p>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.tryIt"></h2>
+      <div id="quiz"></div>
+    </section>
+  </main>
+
+  <script src="../../assets/js/lessons-data.js"></script>
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/widgets.js"></script>
+  <script src="../../assets/js/mascot.js"></script>
+  <script src="../../assets/js/lesson.js"></script>
+  <script>
+  (function () {
+    I18N.register({
+      "l2.intro":  { en: "The <b>order</b> you calculate in matters: do × and ÷ before + and −. Three handy <b>laws</b> also let you rearrange numbers to make a calculation easier.",
+                     zh: "計算的<b>順序</b>很重要：先算 × 和 ÷，再算 + 和 −。還有三條好用的<b>定律</b>，能讓你重新排列數字，使計算更簡單。" },
+      "l2.intro2": { en: "Pick a law below and change the numbers — both sides always stay equal.",
+                     zh: "在下面選一條定律並改變數字 — 兩邊永遠相等。" },
+      "l2.comm":   { en: "Commutative", zh: "交換律" },
+      "l2.assoc":  { en: "Associative", zh: "結合律" },
+      "l2.distrib":{ en: "Distributive", zh: "分配律" },
+      "l2.equal":  { en: "✓ both sides equal", zh: "✓ 兩邊相等" },
+      "l2.swap":   { en: "Swap ⇄", zh: "交換 ⇄" },
+      "l2.commDesc":  { en: "Swapping the order of the factors does not change the product.",
+                        zh: "交換因數的順序，乘積不變。" },
+      "l2.assocDesc": { en: "Regrouping which numbers you add first does not change the sum.",
+                        zh: "改變先相加的分組，總和不變。" },
+      "l2.distribDesc":{ en: "Multiplying a sum equals multiplying each part, then adding.",
+                         zh: "乘以一個和，等於分別相乘後再相加。" },
+      "l2.exTip":  { en: "Evaluate 3 + 4 × 5. Multiplication is done first!",
+                     zh: "計算 3 + 4 × 5。要先算乘法！" },
+      "l2.exWrong":{ en: "Working left-to-right would wrongly give 7 × 5 = 35.",
+                     zh: "若從左到右計算，會錯算成 7 × 5 = 35。" }
+    });
+
+    var NS = "http://www.w3.org/2000/svg";
+    function elNS(t, a) { var e = document.createElementNS(NS, t); for (var k in a) e.setAttribute(k, a[k]); return e; }
+    var COLORS = { a: "#5b9bf3", b: "#ff8fb1", c: "#ffd54a" };
+
+    var law = "comm", a = 3, b = 4, c = 2;
+    var viz = document.getElementById("viz");
+    var eq = document.getElementById("eq");
+    var descEl = document.getElementById("law-desc");
+
+    function dot(cx, cy, color) { viz.appendChild(elNS("circle", { cx: cx, cy: cy, r: 9, fill: color })); }
+
+    function render() {
+      while (viz.firstChild) viz.removeChild(viz.firstChild);
+      var sp = 26, pad = 18, cols, rows, w, h;
+
+      if (law === "comm") {
+        cols = a; rows = b;
+        w = pad * 2 + cols * sp; h = pad * 2 + rows * sp;
+        for (var i = 0; i < cols; i++) for (var j = 0; j < rows; j++)
+          dot(pad + i * sp + sp / 2, pad + j * sp + sp / 2, COLORS.a);
+        eq.textContent = a + " × " + b + " = " + (a * b) + "  =  " + b + " × " + a;
+        descEl.textContent = I18N.t("l2.commDesc");
+      } else if (law === "assoc") {
+        var seq = []; for (var x = 0; x < a; x++) seq.push(COLORS.a);
+        for (var y = 0; y < b; y++) seq.push(COLORS.b);
+        for (var z = 0; z < c; z++) seq.push(COLORS.c);
+        w = pad * 2 + seq.length * sp; h = pad * 2 + sp;
+        seq.forEach(function (col, k) { dot(pad + k * sp + sp / 2, pad + sp / 2, col); });
+        eq.textContent = "(" + a + "+" + b + ")+" + c + " = " + (a + b + c) + " = " + a + "+(" + b + "+" + c + ")";
+        descEl.textContent = I18N.t("l2.assocDesc");
+      } else { // distrib
+        rows = a; cols = b + c;
+        w = pad * 2 + cols * sp; h = pad * 2 + rows * sp;
+        for (var r2 = 0; r2 < rows; r2++) for (var k2 = 0; k2 < cols; k2++)
+          dot(pad + k2 * sp + sp / 2, pad + r2 * sp + sp / 2, k2 < b ? COLORS.b : COLORS.c);
+        eq.textContent = a + " × (" + b + "+" + c + ") = " + (a * (b + c)) +
+          "  =  " + a + "×" + b + " + " + a + "×" + c + " = " + (a * b) + " + " + (a * c);
+        descEl.textContent = I18N.t("l2.distribDesc");
+      }
+      viz.setAttribute("viewBox", "0 0 " + w + " " + h);
+      viz.setAttribute("width", Math.min(w, 380));
+      viz.setAttribute("height", h * Math.min(w, 380) / w);
+    }
+
+    document.querySelectorAll(".law-tab").forEach(function (t) {
+      t.addEventListener("click", function () {
+        document.querySelectorAll(".law-tab").forEach(function (x) { x.classList.remove("active"); });
+        t.classList.add("active");
+        law = t.getAttribute("data-law");
+        document.getElementById("crow").style.display = (law === "comm") ? "none" : "";
+        document.getElementById("swap").style.display = (law === "comm") ? "" : "none";
+        render();
+      });
+    });
+
+    function bind(id, vid, set) {
+      var s = document.getElementById(id), v = document.getElementById(vid);
+      s.addEventListener("input", function () { set(parseInt(s.value, 10)); v.textContent = s.value; render(); });
+    }
+    bind("sa", "va", function (n) { a = n; });
+    bind("sb", "vb", function (n) { b = n; });
+    bind("sc", "vc", function (n) { c = n; });
+
+    document.getElementById("swap").addEventListener("click", function () {
+      viz.classList.add("spin");
+      setTimeout(function () {
+        var t = a; a = b; b = t;
+        document.getElementById("sa").value = a; document.getElementById("va").textContent = a;
+        document.getElementById("sb").value = b; document.getElementById("vb").textContent = b;
+        viz.classList.remove("spin"); render();
+      }, 400);
+    });
+
+    // ---- worked example: order of operations ----
+    var toks = ["3", "+", "4", "×", "5"];
+    var exprEl = document.getElementById("expr");
+    var tokEls = toks.map(function (tk) {
+      var s = document.createElement("span"); s.className = "tok"; s.textContent = tk; exprEl.appendChild(s); return s;
+    });
+    var exLine = document.getElementById("ex-line");
+    function clearHot() { tokEls.forEach(function (e) { e.classList.remove("hot"); }); }
+    document.getElementById("ex-play").addEventListener("click", function () {
+      clearHot(); exLine.textContent = "";
+      tokEls[2].classList.add("hot"); tokEls[3].classList.add("hot"); tokEls[4].classList.add("hot");
+      exLine.textContent = I18N.pick("First: 4 × 5 = 20  →  3 + 20", "先算：4 × 5 = 20  →  3 + 20");
+      setTimeout(function () {
+        clearHot(); tokEls.forEach(function (e) { e.classList.add("done"); });
+        exLine.textContent = I18N.pick("Then: 3 + 20 = 23  ✓", "再算：3 + 20 = 23  ✓");
+        setTimeout(function () { tokEls.forEach(function (e) { e.classList.remove("done"); }); }, 1800);
+      }, 1500);
+    });
+
+    NL.quiz(document.getElementById("quiz"), [
+      { prompt: { en: "What is 3 + 4 × 5?", zh: "3 + 4 × 5 等於多少？" },
+        options: ["35", "23", "27", "60"], answer: 1,
+        explain: { en: "Do 4 × 5 = 20 first, then 3 + 20 = 23.", zh: "先算 4 × 5 = 20，再算 3 + 20 = 23。" } },
+      { prompt: { en: "Which law does 7 × 6 = 6 × 7 show?", zh: "7 × 6 = 6 × 7 表現了哪一條定律？" },
+        options: [ { en: "Commutative", zh: "交換律" }, { en: "Associative", zh: "結合律" },
+                   { en: "Distributive", zh: "分配律" }, { en: "Order of operations", zh: "運算順序" } ], answer: 0,
+        explain: { en: "Swapping the order of factors — that's the commutative law.", zh: "交換因數順序，就是交換律。" } },
+      { prompt: { en: "8 × (10 + 2) = ?", zh: "8 × (10 + 2) = ？" },
+        options: ["96", "82", "812", "20"], answer: 0,
+        explain: { en: "8 × 10 + 8 × 2 = 80 + 16 = 96.", zh: "8 × 10 + 8 × 2 = 80 + 16 = 96。" } }
+    ]);
+
+    document.addEventListener("langchange", render);
+    document.getElementById("crow").style.display = "none";
+    document.getElementById("swap").style.display = "";
+    render();
+    if (window.mascot) window.mascot.say("Order matters — let's see why!", "順序很重要 — 一起看看為什麼！");
+  })();
+  </script>
+</body>
+</html>

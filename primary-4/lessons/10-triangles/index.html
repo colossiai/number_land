@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Triangles</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    .tri-svg { width: 100%; max-width: 420px; height: auto; }
+    .vtx { fill: var(--accent); stroke: #fff; stroke-width: 3; cursor: grab; }
+    .vtx:active { cursor: grabbing; }
+    .tri-fill { fill: rgba(91,155,243,0.18); stroke: var(--brand-dk); stroke-width: 3; stroke-linejoin: round; }
+    .ang-arc-0 { fill: rgba(255,143,177,0.5); }
+    .ang-arc-1 { fill: rgba(47,191,113,0.5); }
+    .ang-arc-2 { fill: rgba(255,213,74,0.6); }
+    .ang-label { font-size: 14px; font-weight: 800; fill: var(--ink); }
+    .side-label { font-size: 12px; font-weight: 700; fill: var(--brand-dk); }
+    .chips { margin: 8px 0; }
+    .fold-svg { width: 100%; max-width: 360px; height: auto; }
+  </style>
+</head>
+<body data-lesson="10">
+  <main>
+    <section class="panel">
+      <h2 data-i18n="ui.concept"></h2>
+      <div class="with-mascot">
+        <div data-mascot="left"></div>
+        <div class="copy">
+          <p class="lead" data-i18n="l10.intro"></p>
+          <p data-i18n="l10.intro2"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.explore"></h2>
+      <p class="muted" data-i18n="l10.exploreHint"></p>
+      <div class="stage">
+        <svg class="tri-svg" id="tri" viewBox="0 0 420 320"></svg>
+      </div>
+      <div class="chips center" id="tri-chips"></div>
+      <div class="readout" id="tri-sum"></div>
+      <div class="controls">
+        <button class="btn accent" id="fold-play"></button>
+        <button class="btn ghost" id="tri-reset" data-i18n="ui.reset"></button>
+      </div>
+      <div class="center"><svg class="fold-svg" id="fold" viewBox="0 0 360 130"></svg></div>
+      <p class="muted center" id="fold-note"></p>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.example"></h2>
+      <p data-i18n="l10.exTip"></p>
+      <div class="controls">
+        <button class="btn" id="ex-equi"></button>
+        <button class="btn" id="ex-right"></button>
+        <button class="btn" id="ex-obtuse"></button>
+      </div>
+      <p class="readout" id="ex-line" style="font-size:1.05rem"></p>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.tryIt"></h2>
+      <div id="quiz"></div>
+    </section>
+  </main>
+
+  <script src="../../assets/js/lessons-data.js"></script>
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/widgets.js"></script>
+  <script src="../../assets/js/mascot.js"></script>
+  <script src="../../assets/js/lesson.js"></script>
+  <script>
+  (function () {
+    I18N.register({
+      "l10.intro":  { en: "A triangle has 3 sides and 3 corners (angles). We can sort triangles by their <b>sides</b> and by their <b>angles</b>.",
+                      zh: "三角形有 3 條邊和 3 個角。我們可以按<b>邊</b>和按<b>角</b>來把三角形分類。" },
+      "l10.intro2": { en: "No matter the shape, the 3 angles always add up to <b>180°</b>. Drag the corners and see!",
+                      zh: "無論形狀如何，三個角的和永遠是 <b>180°</b>。拖動頂點試試看！" },
+      "l10.exploreHint": { en: "Drag any corner. Watch the angles and the side/angle type change.",
+                           zh: "拖動任何一個頂點，觀察角度與「邊／角」分類的變化。" },
+      "l10.exTip":  { en: "Tap a button to see a special triangle and what makes it special.",
+                      zh: "按一個按鈕，看看特別的三角形和它的特點。" },
+      "l10.sum":    { en: "Angle sum", zh: "內角和" },
+      "l10.foldPlay": { en: "Fold the 3 angles ▶", zh: "把三個角拼起來 ▶" },
+      "l10.foldNote": { en: "The 3 angles fit together on a straight line — exactly 180°.",
+                        zh: "三個角剛好拼成一條直線 —— 正好 180°。" },
+      "l10.equilateral": { en: "Equilateral", zh: "等邊三角形" },
+      "l10.isosceles":   { en: "Isosceles", zh: "等腰三角形" },
+      "l10.scalene":     { en: "Scalene", zh: "不等邊三角形" },
+      "l10.acute":   { en: "Acute", zh: "銳角三角形" },
+      "l10.right":   { en: "Right", zh: "直角三角形" },
+      "l10.obtuse":  { en: "Obtuse", zh: "鈍角三角形" },
+      "l10.bySides": { en: "By sides", zh: "按邊" },
+      "l10.byAngles":{ en: "By angles", zh: "按角" },
+      "l10.equiBtn": { en: "Equilateral", zh: "等邊" },
+      "l10.rightBtn":{ en: "Right", zh: "直角" },
+      "l10.obtuseBtn":{ en: "Obtuse", zh: "鈍角" },
+      "l10.exEqui":  { en: "Equilateral: all 3 sides equal and all 3 angles are 60°. 60+60+60 = 180°.",
+                       zh: "等邊三角形：三邊相等，三個角都是 60°。60+60+60 = 180°。" },
+      "l10.exRight": { en: "Right triangle: one angle is exactly 90°. The other two add up to 90°.",
+                       zh: "直角三角形：有一個角剛好是 90°，另外兩個角加起來是 90°。" },
+      "l10.exObtuse":{ en: "Obtuse triangle: one angle is bigger than 90°. The other two are small and acute.",
+                       zh: "鈍角三角形：有一個角大於 90°，其餘兩個角都是小小的銳角。" }
+    });
+
+    var SVGNS = "http://www.w3.org/2000/svg";
+    var svg = document.getElementById("tri");
+    var V = [ {x:70,y:250}, {x:350,y:250}, {x:210,y:70} ];
+    var DEF = JSON.parse(JSON.stringify(V));
+
+    var poly = document.createElementNS(SVGNS, "polygon"); poly.setAttribute("class","tri-fill");
+    svg.appendChild(poly);
+    var arcs = [0,1,2].map(function(i){ var p=document.createElementNS(SVGNS,"path"); p.setAttribute("class","ang-arc-"+i); svg.appendChild(p); return p; });
+    var angLabels = [0,1,2].map(function(){ var t=document.createElementNS(SVGNS,"text"); t.setAttribute("class","ang-label"); t.setAttribute("text-anchor","middle"); svg.appendChild(t); return t; });
+    var verts = V.map(function(v,i){ var c=document.createElementNS(SVGNS,"circle"); c.setAttribute("class","vtx"); c.setAttribute("r","11"); c.dataset.i=i; svg.appendChild(c); return c; });
+
+    function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+    function angleAt(i){ // interior angle at vertex i, in degrees
+      var p = V[i], a = V[(i+1)%3], b = V[(i+2)%3];
+      var v1 = {x:a.x-p.x, y:a.y-p.y}, v2 = {x:b.x-p.x, y:b.y-p.y};
+      var d = (v1.x*v2.x + v1.y*v2.y) / (Math.hypot(v1.x,v1.y)*Math.hypot(v2.x,v2.y));
+      d = Math.max(-1, Math.min(1, d));
+      return Math.acos(d) * 180 / Math.PI;
+    }
+    function arcPathFor(i, r){
+      var p = V[i], a = V[(i+1)%3], b = V[(i+2)%3];
+      var a0 = Math.atan2(a.y-p.y, a.x-p.x), a1 = Math.atan2(b.y-p.y, b.x-p.x);
+      var start = {x:p.x+r*Math.cos(a0), y:p.y+r*Math.sin(a0)};
+      var end   = {x:p.x+r*Math.cos(a1), y:p.y+r*Math.sin(a1)};
+      // pick the small (interior) sweep
+      var diff = a1 - a0; while(diff<=-Math.PI)diff+=2*Math.PI; while(diff>Math.PI)diff-=2*Math.PI;
+      var sweep = diff > 0 ? 1 : 0;
+      return "M "+p.x+" "+p.y+" L "+start.x+" "+start.y+" A "+r+" "+r+" 0 0 "+sweep+" "+end.x+" "+end.y+" Z";
+    }
+
+    function classifySides(s){ // s = [3 lengths]
+      var t = 6;
+      var eq = (Math.abs(s[0]-s[1])<t) + (Math.abs(s[1]-s[2])<t) + (Math.abs(s[0]-s[2])<t);
+      if (eq >= 3) return "l10.equilateral";
+      if (eq >= 1) return "l10.isosceles";
+      return "l10.scalene";
+    }
+    function classifyAngles(ang){
+      var max = Math.max(ang[0],ang[1],ang[2]);
+      if (Math.abs(max-90) < 2) return "l10.right";
+      if (max > 90) return "l10.obtuse";
+      return "l10.acute";
+    }
+
+    var lastSides="l10.scalene", lastAngles="l10.acute", lastAng=[60,60,60];
+    function render(){
+      poly.setAttribute("points", V.map(function(v){return v.x+","+v.y;}).join(" "));
+      verts.forEach(function(c,i){ c.setAttribute("cx",V[i].x); c.setAttribute("cy",V[i].y); });
+      var rawAng = [angleAt(0),angleAt(1),angleAt(2)];
+      // round but keep sum = 180 (rounding the third from the first two)
+      var a0=Math.round(rawAng[0]), a1=Math.round(rawAng[1]), a2=180-a0-a1;
+      lastAng=[a0,a1,a2];
+      [0,1,2].forEach(function(i){
+        arcs[i].setAttribute("d", arcPathFor(i, 30));
+        var p=V[i], a=V[(i+1)%3], b=V[(i+2)%3];
+        var mid={x:(a.x+b.x)/2-p.x, y:(a.y+b.y)/2-p.y};
+        var len=Math.hypot(mid.x,mid.y)||1;
+        angLabels[i].setAttribute("x", p.x+mid.x/len*46);
+        angLabels[i].setAttribute("y", p.y+mid.y/len*46+5);
+        angLabels[i].textContent = lastAng[i]+"°";
+      });
+      var sides=[dist(V[0],V[1]), dist(V[1],V[2]), dist(V[2],V[0])];
+      lastSides=classifySides(sides); lastAngles=classifyAngles(rawAng);
+      drawFold(lastAng);
+      renderText();
+    }
+    function renderText(){
+      var chips=document.getElementById("tri-chips");
+      chips.innerHTML="";
+      function chip(label,val){ var s=document.createElement("span"); s.className="chip good"; s.textContent=I18N.t(label)+": "+I18N.t(val); chips.appendChild(s); }
+      chip("l10.bySides", lastSides);
+      chip("l10.byAngles", lastAngles);
+      document.getElementById("tri-sum").textContent =
+        I18N.t("l10.sum")+": "+lastAng[0]+"° + "+lastAng[1]+"° + "+lastAng[2]+"° = 180°";
+      document.getElementById("fold-play").textContent = I18N.t("l10.foldPlay");
+      document.getElementById("fold-note").textContent = I18N.t("l10.foldNote");
+      document.getElementById("ex-equi").textContent = I18N.t("l10.equiBtn");
+      document.getElementById("ex-right").textContent = I18N.t("l10.rightBtn");
+      document.getElementById("ex-obtuse").textContent = I18N.t("l10.obtuseBtn");
+    }
+
+    // ---- drag ----
+    var dragging=null;
+    function toSvg(evt){ var pt=svg.createSVGPoint(); pt.x=evt.clientX; pt.y=evt.clientY; return pt.matrixTransform(svg.getScreenCTM().inverse()); }
+    verts.forEach(function(c){
+      c.addEventListener("pointerdown", function(e){ dragging=+c.dataset.i; c.setPointerCapture(e.pointerId); e.preventDefault(); });
+    });
+    svg.addEventListener("pointermove", function(e){
+      if(dragging===null) return;
+      var p=toSvg(e);
+      V[dragging].x=Math.max(14,Math.min(406,p.x));
+      V[dragging].y=Math.max(14,Math.min(306,p.y));
+      render();
+    });
+    svg.addEventListener("pointerup", function(){ dragging=null; });
+    svg.addEventListener("pointercancel", function(){ dragging=null; });
+
+    document.getElementById("tri-reset").addEventListener("click", function(){
+      V=JSON.parse(JSON.stringify(DEF)); render();
+    });
+
+    // ---- fold (angle sum) animation ----
+    var fold=document.getElementById("fold");
+    var foldT=1; var foldAng=[60,60,60]; var raf=null;
+    function drawFold(ang){
+      foldAng=ang.slice();
+      fold.innerHTML="";
+      var cx=180, cy=110, r=86;
+      // baseline
+      var base=document.createElementNS(SVGNS,"line");
+      base.setAttribute("x1",cx-r); base.setAttribute("y1",cy); base.setAttribute("x2",cx+r); base.setAttribute("y2",cy);
+      base.setAttribute("stroke","#bcd0f0"); base.setAttribute("stroke-width","2"); fold.appendChild(base);
+      var fills=["rgba(255,143,177,0.6)","rgba(47,191,113,0.6)","rgba(255,213,74,0.7)"];
+      var start=180; // degrees, measured from +x going counter-clockwise (we draw upward)
+      var sweepDone = foldT*180;
+      var acc=0;
+      for(var i=0;i<3;i++){
+        var span=foldAng[i];
+        var aStart=acc, aEnd=Math.min(acc+span, sweepDone);
+        if(aEnd>aStart){
+          var p=document.createElementNS(SVGNS,"path");
+          var ar0=Math.PI*(180-aStart)/180, ar1=Math.PI*(180-aEnd)/180;
+          var x0=cx+r*Math.cos(ar0), y0=cy-r*Math.sin(ar0);
+          var x1=cx+r*Math.cos(ar1), y1=cy-r*Math.sin(ar1);
+          p.setAttribute("d","M "+cx+" "+cy+" L "+x0+" "+y0+" A "+r+" "+r+" 0 0 0 "+x1+" "+y1+" Z");
+          p.setAttribute("fill",fills[i]); p.setAttribute("stroke","#fff"); p.setAttribute("stroke-width","1.5");
+          fold.appendChild(p);
+        }
+        acc+=span;
+      }
+    }
+    document.getElementById("fold-play").addEventListener("click", function(){
+      if(raf) cancelAnimationFrame(raf);
+      var startTs=null, dur=1400;
+      function tick(ts){ if(!startTs)startTs=ts; var k=Math.min(1,(ts-startTs)/dur); foldT=k; drawFold(foldAng);
+        if(k<1) raf=requestAnimationFrame(tick); else if(window.mascot){ window.mascot.setMood("celebrate"); window.mascot.say("180° exactly!","剛好 180°！"); setTimeout(function(){if(window.mascot)window.mascot.setMood("happy");},1500);} }
+      foldT=0; raf=requestAnimationFrame(tick);
+    });
+
+    // ---- worked example presets ----
+    var exLine=document.getElementById("ex-line");
+    function setPreset(verts3, key){
+      V=verts3.map(function(p){return {x:p[0],y:p[1]};}); render();
+      exLine.textContent=I18N.t(key);
+    }
+    document.getElementById("ex-equi").addEventListener("click", function(){
+      setPreset([[210,60],[80,270],[340,270]], "l10.exEqui"); }); // near-equilateral
+    document.getElementById("ex-right").addEventListener("click", function(){
+      setPreset([[80,260],[80,70],[330,260]], "l10.exRight"); });
+    document.getElementById("ex-obtuse").addEventListener("click", function(){
+      setPreset([[60,250],[360,250],[300,150]], "l10.exObtuse"); });
+
+    // ---- quiz ----
+    NL.quiz(document.getElementById("quiz"), [
+      { prompt:{ en:"A triangle has angles 90°, 45° and 45°. By its angles it is…", zh:"一個三角形的角是 90°、45°、45°，按角分類它是…" },
+        options:[ {en:"Acute",zh:"銳角三角形"}, {en:"Right",zh:"直角三角形"}, {en:"Obtuse",zh:"鈍角三角形"} ], answer:1,
+        explain:{ en:"It has a 90° angle, so it is a right triangle.", zh:"它有一個 90° 的角，所以是直角三角形。" } },
+      { prompt:{ en:"Two angles of a triangle are 50° and 60°. What is the third angle?", zh:"三角形其中兩個角是 50° 和 60°，第三個角是多少？" },
+        options:[ "60°", "70°", "80°", "110°" ], answer:1,
+        explain:{ en:"180 − 50 − 60 = 70°.", zh:"180 − 50 − 60 = 70°。" } },
+      { prompt:{ en:"A triangle with all three sides equal is called…", zh:"三條邊都相等的三角形叫做…" },
+        options:[ {en:"Scalene",zh:"不等邊三角形"}, {en:"Isosceles",zh:"等腰三角形"}, {en:"Equilateral",zh:"等邊三角形"} ], answer:2,
+        explain:{ en:"Equilateral means all sides (and all angles) are equal.", zh:"等邊三角形的三邊（和三個角）都相等。" } }
+    ]);
+
+    document.addEventListener("langchange", function(){ renderText(); });
+    render();
+    if (window.mascot) window.mascot.say("Drag the corners — the angles always add to 180°!", "拖動頂點，三個角永遠加起來是 180°！");
+  })();
+  </script>
+</body>
+</html>

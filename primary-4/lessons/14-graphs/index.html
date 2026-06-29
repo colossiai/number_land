@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bar &amp; Line Graphs</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    .data-editor { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 10px 0; }
+    .de-col { display: flex; flex-direction: column; align-items: center; gap: 4px;
+      background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 8px 6px; min-width: 70px; }
+    .de-day { font-size: 0.78rem; font-weight: 700; color: var(--ink-soft); }
+    .de-val { font-size: 1.5rem; font-weight: 800; color: var(--brand-dk); font-variant-numeric: tabular-nums; }
+    .de-step { border: none; background: #eef5ff; color: var(--brand-dk); font-weight: 800;
+      width: 34px; height: 26px; border-radius: 8px; cursor: pointer; font-size: 1rem; }
+    .de-step:hover { background: var(--brand); color: #fff; }
+    .toggle-row { display: flex; gap: 0; justify-content: center; margin: 10px 0; }
+    .toggle-row .btn { border-radius: 0; }
+    .toggle-row .btn:first-child { border-radius: 999px 0 0 999px; }
+    .toggle-row .btn:last-child { border-radius: 0 999px 999px 0; }
+    .toggle-row .btn.off { background: #fff; color: var(--brand-dk); box-shadow: none; border: 2px solid var(--brand); }
+    canvas.chart { background: #fff; border-radius: 12px; }
+  </style>
+</head>
+<body data-lesson="14">
+  <main>
+    <section class="panel">
+      <h2 data-i18n="ui.concept"></h2>
+      <div class="with-mascot">
+        <div data-mascot="left"></div>
+        <div class="copy">
+          <p class="lead" data-i18n="l14.intro"></p>
+          <p data-i18n="l14.intro2"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.explore"></h2>
+      <p class="muted" data-i18n="l14.exploreHint"></p>
+      <div class="data-editor" id="editor"></div>
+      <div class="toggle-row">
+        <button class="btn" id="mode-bar" data-i18n="l14.bar"></button>
+        <button class="btn off" id="mode-line" data-i18n="l14.line"></button>
+      </div>
+      <div class="stage">
+        <canvas class="chart" id="chart" width="540" height="320"></canvas>
+      </div>
+      <div class="readout" id="pick"></div>
+      <div class="muted" id="stats"></div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.example"></h2>
+      <p data-i18n="l14.exTip"></p>
+      <div class="stage">
+        <canvas class="chart" id="exchart" width="540" height="300"></canvas>
+      </div>
+      <div class="row">
+        <button class="btn accent" id="ex-play" data-i18n="ui.play"></button>
+      </div>
+      <p class="readout" id="ex-line" style="font-size:1.05rem"></p>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.tryIt"></h2>
+      <div id="quiz"></div>
+    </section>
+  </main>
+
+  <script src="../../assets/js/lessons-data.js"></script>
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/widgets.js"></script>
+  <script src="../../assets/js/mascot.js"></script>
+  <script src="../../assets/js/lesson.js"></script>
+  <script>
+  (function () {
+    I18N.register({
+      "l14.intro":  { en: "A <b>graph</b> turns numbers into a picture so you can compare them at a glance. A <b>bar graph</b> uses bars; a <b>line graph</b> joins points and is great for showing change over time.",
+                      zh: "<b>統計圖</b>把數字變成圖畫，讓你一眼就能比較。<b>條形圖</b>用長條；<b>折線圖</b>把點連起來，最適合表示隨時間的變化。" },
+      "l14.intro2": { en: "Change the numbers below and switch between bar and line to see how the same data looks.",
+                      zh: "改變下面的數字，並切換條形圖與折線圖，看看同一組數據的不同樣子。" },
+      "l14.exploreHint": { en: "Books read each day. Use ▲ / ▼ to change a value, then tap a bar or point to read it.",
+                           zh: "每天閱讀的書本數。用 ▲ / ▼ 改變數值，再點長條或圓點來讀數。" },
+      "l14.exTip": { en: "Drinks sold from Monday to Friday. Press Play to read the graph step by step.",
+                     zh: "週一到週五售出的飲品。按「播放」逐步讀圖。" },
+      "l14.bar":  { en: "Bar 📊", zh: "條形圖 📊" },
+      "l14.line": { en: "Line 📈", zh: "折線圖 📈" },
+      "l14.title": { en: "Books read", zh: "閱讀書本數" },
+      "l14.exTitle": { en: "Drinks sold", zh: "售出飲品數" },
+      "l14.highest": { en: "Highest", zh: "最高" },
+      "l14.lowest":  { en: "Lowest", zh: "最低" },
+      "l14.total":   { en: "Total", zh: "總數" }
+    });
+
+    var DAYS_EN = ["Mon","Tue","Wed","Thu","Fri"];
+    var DAYS_ZH = ["週一","週二","週三","週四","週五"];
+    function days() { return I18N.lang === "zh" ? DAYS_ZH : DAYS_EN; }
+
+    var data = [3, 5, 2, 6, 4];
+    var disp = data.slice();          // animated display values
+    var mode = "bar";
+    var picked = -1;
+    var MAXY = 10;
+
+    // ---------- shared chart drawing ----------
+    function drawChart(canvas, vals, opt) {
+      opt = opt || {};
+      var ctx = canvas.getContext("2d");
+      var W = canvas.width, H = canvas.height;
+      var L = 42, R = 16, T = 18, B = 42;
+      var pw = W - L - R, ph = H - T - B;
+      var n = vals.length;
+      ctx.clearRect(0, 0, W, H);
+      ctx.font = "13px 'Segoe UI', system-ui, sans-serif";
+      ctx.textBaseline = "middle";
+
+      // gridlines + y labels
+      ctx.strokeStyle = "#e3ecff"; ctx.fillStyle = "#5a6b85"; ctx.lineWidth = 1;
+      for (var g = 0; g <= MAXY; g += 2) {
+        var y = T + ph - (g / MAXY) * ph;
+        ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(W - R, y); ctx.stroke();
+        ctx.textAlign = "right"; ctx.fillText(String(g), L - 6, y);
+      }
+      // axes
+      ctx.strokeStyle = "#9bb4e0"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(L, T); ctx.lineTo(L, T + ph); ctx.lineTo(W - R, T + ph); ctx.stroke();
+
+      var xs = [];
+      for (var i = 0; i < n; i++) xs.push(L + pw * (i + 0.5) / n);
+      var labels = opt.labels || days();
+      var hi = vals.indexOf(Math.max.apply(null, vals));
+      var lo = vals.indexOf(Math.min.apply(null, vals));
+
+      // x labels
+      ctx.fillStyle = "#22324a"; ctx.textAlign = "center";
+      for (i = 0; i < n; i++) ctx.fillText(labels[i], xs[i], T + ph + 18);
+
+      function yOf(v) { return T + ph - (v / MAXY) * ph; }
+
+      if ((opt.mode || mode) === "bar") {
+        var bw = pw / n * 0.55;
+        for (i = 0; i < n; i++) {
+          var bh = (vals[i] / MAXY) * ph;
+          ctx.fillStyle = (i === opt.pick) ? "#e85f8c"
+            : (opt.markHiLo && i === hi) ? "#5b9bf3"
+            : (opt.markHiLo && i === lo) ? "#9bc0ff" : "#7eb0f6";
+          ctx.fillRect(xs[i] - bw / 2, T + ph - bh, bw, bh);
+          if (opt.showVals || i === opt.pick) {
+            ctx.fillStyle = "#22324a"; ctx.fillText(Math.round(vals[i]), xs[i], yOf(vals[i]) - 10);
+          }
+        }
+      } else {
+        ctx.strokeStyle = "#5b9bf3"; ctx.lineWidth = 3; ctx.beginPath();
+        for (i = 0; i < n; i++) { var px = xs[i], py = yOf(vals[i]);
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); }
+        ctx.stroke();
+        for (i = 0; i < n; i++) {
+          ctx.beginPath(); ctx.fillStyle = (i === opt.pick) ? "#e85f8c" : "#3a6fd0";
+          ctx.arc(xs[i], yOf(vals[i]), (i === opt.pick) ? 7 : 5, 0, 7); ctx.fill();
+          if (opt.showVals || i === opt.pick) {
+            ctx.fillStyle = "#22324a"; ctx.fillText(Math.round(vals[i]), xs[i], yOf(vals[i]) - 12);
+          }
+        }
+      }
+      return { xs: xs, hi: hi, lo: lo };
+    }
+
+    // ---------- explore: editor + animated chart ----------
+    var canvas = document.getElementById("chart");
+    var editor = document.getElementById("editor");
+    var valEls = [];
+    function buildEditor() {
+      editor.innerHTML = "";
+      data.forEach(function (v, i) {
+        var col = document.createElement("div"); col.className = "de-col";
+        var up = document.createElement("button"); up.className = "de-step"; up.textContent = "▲";
+        var val = document.createElement("div"); val.className = "de-val"; val.textContent = v;
+        var down = document.createElement("button"); down.className = "de-step"; down.textContent = "▼";
+        var day = document.createElement("div"); day.className = "de-day";
+        up.addEventListener("click", function () { if (data[i] < MAXY) { data[i]++; val.textContent = data[i]; } });
+        down.addEventListener("click", function () { if (data[i] > 0) { data[i]--; val.textContent = data[i]; } });
+        col.appendChild(up); col.appendChild(val); col.appendChild(down); col.appendChild(day);
+        editor.appendChild(col);
+        valEls.push({ val: val, day: day });
+      });
+    }
+    function syncDayLabels() { valEls.forEach(function (e, i) { e.day.textContent = days()[i]; }); }
+
+    canvas.addEventListener("click", function (ev) {
+      var r = canvas.getBoundingClientRect();
+      var x = (ev.clientX - r.left) * (canvas.width / r.width);
+      var L = 42, R = 16, pw = canvas.width - L - R, n = data.length;
+      var idx = Math.floor((x - L) / (pw / n));
+      if (idx >= 0 && idx < n) picked = (picked === idx ? -1 : idx);
+      updatePick();
+    });
+    function updatePick() {
+      var p = document.getElementById("pick");
+      if (picked < 0) { p.textContent = ""; return; }
+      p.textContent = days()[picked] + " = " + data[picked];
+    }
+    function updateStats() {
+      var hi = data.indexOf(Math.max.apply(null, data));
+      var lo = data.indexOf(Math.min.apply(null, data));
+      var total = data.reduce(function (a, b) { return a + b; }, 0);
+      document.getElementById("stats").textContent =
+        I18N.t("l14.highest") + ": " + days()[hi] + " (" + data[hi] + ")   ·   " +
+        I18N.t("l14.lowest") + ": " + days()[lo] + " (" + data[lo] + ")   ·   " +
+        I18N.t("l14.total") + ": " + total;
+    }
+
+    function loop() {
+      for (var i = 0; i < data.length; i++) disp[i] += (data[i] - disp[i]) * 0.18;
+      drawChart(canvas, disp, { mode: mode, pick: picked, markHiLo: true, showVals: false });
+      updateStats();
+      requestAnimationFrame(loop);
+    }
+
+    document.getElementById("mode-bar").addEventListener("click", function () {
+      mode = "bar"; this.classList.remove("off"); document.getElementById("mode-line").classList.add("off");
+    });
+    document.getElementById("mode-line").addEventListener("click", function () {
+      mode = "line"; this.classList.remove("off"); document.getElementById("mode-bar").classList.add("off");
+    });
+
+    // ---------- worked example ----------
+    var exData = [4, 6, 2, 5, 7]; // Mon..Fri drinks
+    var exCanvas = document.getElementById("exchart");
+    var exLine = document.getElementById("ex-line");
+    var exStep = -1;
+    function drawEx() {
+      drawChart(exCanvas, exData, { mode: "bar", showVals: true, markHiLo: exStep >= 1,
+        pick: exStep === 1 ? 4 : (exStep === 2 ? 2 : -1) });
+    }
+    var EX_LINES = [
+      { en: "This bar graph shows drinks sold each day.", zh: "這個條形圖顯示每天售出的飲品數。" },
+      { en: "Friday's bar is tallest → most drinks: 7.", zh: "週五的長條最高 → 售出最多：7。" },
+      { en: "Wednesday's bar is shortest → fewest: 2.", zh: "週三的長條最短 → 售出最少：2。" },
+      { en: "Difference between most and fewest: 7 − 2 = 5.", zh: "最多與最少相差：7 − 2 = 5。" }
+    ];
+    function showExStep(s) { exStep = s; drawEx();
+      exLine.textContent = I18N.pick(EX_LINES[s].en, EX_LINES[s].zh); }
+    document.getElementById("ex-play").addEventListener("click", function () {
+      var i = 0; (function step() { if (i >= EX_LINES.length) return;
+        showExStep(i); i++; setTimeout(step, 1500); })();
+    });
+
+    // ---------- quiz ----------
+    NL.quiz(document.getElementById("quiz"), [
+      { prompt: { en: "A shop sold drinks: Mon 20, Tue 35, Wed 15, Thu 40, Fri 30. Which day sold the most?",
+                  zh: "某店售出飲品：週一 20、週二 35、週三 15、週四 40、週五 30。哪天賣得最多？" },
+        options: [ { en: "Tue", zh: "週二" }, { en: "Wed", zh: "週三" }, { en: "Thu", zh: "週四" }, { en: "Fri", zh: "週五" } ],
+        answer: 2, explain: { en: "Thursday has the biggest value, 40.", zh: "週四數值最大，是 40。" } },
+      { prompt: { en: "Using that data, how many more were sold on Thu than on Wed?",
+                  zh: "用上面的數據，週四比週三多賣多少？" },
+        options: [ "15", "20", "25", "30" ], answer: 2,
+        explain: { en: "40 − 15 = 25.", zh: "40 − 15 = 25。" } },
+      { prompt: { en: "How many drinks were sold on Mon and Tue altogether?",
+                  zh: "週一和週二一共售出多少飲品？" },
+        options: [ "45", "50", "55", "60" ], answer: 2,
+        explain: { en: "20 + 35 = 55.", zh: "20 + 35 = 55。" } }
+    ]);
+
+    // ---------- init + language ----------
+    buildEditor();
+    syncDayLabels();
+    drawEx();
+    document.addEventListener("langchange", function () {
+      syncDayLabels(); updatePick(); updateStats();
+      if (exStep >= 0) showExStep(exStep);
+    });
+    loop();
+    if (window.mascot) window.mascot.say("Let's turn numbers into pictures!", "一起把數字變成圖畫吧！");
+  })();
+  </script>
+</body>
+</html>

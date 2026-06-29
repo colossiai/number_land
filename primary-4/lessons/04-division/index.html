@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Division</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    .mode-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 6px; }
+    .mode-tabs .btn { padding: 7px 16px; }
+    .mode-tabs .btn:not(.active) { background: #fff; color: var(--brand-dk); border: 2px solid var(--brand); box-shadow: none; }
+    .groups { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 10px; min-height: 90px; }
+    .group-box { border: 2px dashed var(--brand); border-radius: 12px; padding: 8px; min-width: 70px;
+      display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start; justify-content: center; }
+    .leftover-box { border-color: var(--accent); }
+    .counter { width: 16px; height: 16px; border-radius: 50%; background: var(--brand); animation: pop .25s ease-out; }
+    .leftover-box .counter { background: var(--accent); }
+    .grp-cap { font-size: .75rem; font-weight: 700; color: var(--ink-soft); text-align: center; width: 100%; margin-bottom: 2px; }
+    .ld-lines { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; text-align: left;
+      max-width: 460px; margin: 8px auto; }
+    .ld-line { padding: 4px 8px; border-radius: 8px; opacity: 0; transform: translateY(6px);
+      transition: opacity .25s, transform .25s; }
+    .ld-line.show { opacity: 1; transform: none; }
+    .ld-line.cur { background: var(--gold); }
+    .ld-q { font-size: 1.6rem; font-weight: 800; color: var(--brand-dk); font-variant-numeric: tabular-nums; }
+    select { font-family: inherit; font-size: 1rem; padding: 6px 10px; border-radius: 8px; border: 2px solid var(--line); }
+  </style>
+</head>
+<body data-lesson="4">
+  <main>
+    <section class="panel">
+      <h2 data-i18n="ui.concept"></h2>
+      <div class="with-mascot">
+        <div data-mascot="left"></div>
+        <div class="copy">
+          <p class="lead" data-i18n="l4.intro"></p>
+          <p data-i18n="l4.intro2"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.explore"></h2>
+      <div class="mode-tabs">
+        <button class="btn active" id="tab-share" data-i18n="l4.modeShare"></button>
+        <button class="btn" id="tab-long" data-i18n="l4.modeLong"></button>
+      </div>
+
+      <!-- Sharing mode -->
+      <div id="m-share">
+        <div class="controls">
+          <label><span data-i18n="l4.total"></span>: <b id="sh-total-v">24</b></label>
+          <input type="range" id="sh-total" min="6" max="40" value="24">
+          <label><span data-i18n="l4.groups"></span>: <b id="sh-groups-v">4</b></label>
+          <input type="range" id="sh-groups" min="2" max="8" value="4">
+          <button class="btn accent" id="sh-deal" data-i18n="l4.deal"></button>
+        </div>
+        <div class="stage">
+          <div class="groups" id="sh-groups-host"></div>
+        </div>
+        <div class="readout" id="sh-result"></div>
+      </div>
+
+      <!-- Long division mode -->
+      <div id="m-long" hidden>
+        <div class="controls">
+          <label data-i18n="l4.pick"></label>
+          <select id="ld-pick">
+            <option value="156/12">156 ÷ 12</option>
+            <option value="288/24">288 ÷ 24</option>
+            <option value="345/15">345 ÷ 15</option>
+            <option value="408/17">408 ÷ 17</option>
+            <option value="500/16">500 ÷ 16</option>
+          </select>
+          <button class="btn" id="ld-next" data-i18n="ui.next.label"></button>
+          <button class="btn ghost" id="ld-reset" data-i18n="ui.reset"></button>
+        </div>
+        <div class="stage">
+          <div>Q = <span class="ld-q" id="ld-q">?</span> <span id="ld-rem" class="chip"></span></div>
+          <div class="ld-lines" id="ld-lines"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.example"></h2>
+      <p data-i18n="l4.exTip"></p>
+      <div class="stage">
+        <div class="ld-lines" id="ex-lines"></div>
+      </div>
+      <div class="row"><button class="btn accent" id="ex-next" data-i18n="ui.next.label"></button>
+        <button class="btn ghost" id="ex-reset" data-i18n="ui.reset"></button></div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.tryIt"></h2>
+      <div id="quiz"></div>
+    </section>
+  </main>
+
+  <script src="../../assets/js/lessons-data.js"></script>
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/widgets.js"></script>
+  <script src="../../assets/js/mascot.js"></script>
+  <script src="../../assets/js/lesson.js"></script>
+  <script>
+  (function () {
+    I18N.register({
+      "l4.intro":  { en: "Division means splitting into <b>equal groups</b>. 24 ÷ 4 asks: if we share 24 things equally among 4 groups, how many are in each group?",
+                     zh: "除法就是把東西<b>平均分組</b>。24 ÷ 4 是問：把 24 件東西平均分到 4 組，每組有多少件？" },
+      "l4.intro2": { en: "Sometimes there are leftovers — that is the <b>remainder</b>. For bigger numbers we use long division.",
+                     zh: "有時會有剩下的，那就是<b>餘數</b>。數字較大時，我們用長除法（直式除法）。" },
+      "l4.modeShare": { en: "Share into groups", zh: "平均分組" },
+      "l4.modeLong":  { en: "Long division", zh: "長除法" },
+      "l4.total":  { en: "Total", zh: "總數" },
+      "l4.groups": { en: "Groups", zh: "組數" },
+      "l4.deal":   { en: "Deal them out", zh: "開始分" },
+      "l4.pick":   { en: "Choose a problem:", zh: "選一題：" },
+      "l4.exTip":  { en: "Press Next to work through 156 ÷ 12 one step at a time.",
+                     zh: "按「下一步」逐步計算 156 ÷ 12。" },
+      "l4.each":   { en: "each group gets", zh: "每組得到" },
+      "l4.rem":    { en: "remainder", zh: "餘數" },
+      "l4.tooSmall": { en: "{D} is smaller than {d}, so look at the next digit.",
+                       zh: "{D} 比 {d} 小，所以再看下一位。" },
+      "l4.divLine":  { en: "{cur} ÷ {d} = {q}  →  {q} × {d} = {prod},  {cur} − {prod} = {rem}",
+                       zh: "{cur} ÷ {d} = {q}  →  {q} × {d} = {prod}，{cur} − {prod} = {rem}" },
+      "l4.bring":    { en: "bring down {n} → {cur}", zh: "把 {n} 移下來 → {cur}" },
+      "l4.done":     { en: "Done! {D} ÷ {d} = {q}{r}", zh: "完成！{D} ÷ {d} = {q}{r}" }
+    });
+
+    // ---------- mode switch ----------
+    var tabShare = document.getElementById("tab-share");
+    var tabLong = document.getElementById("tab-long");
+    function setMode(long) {
+      document.getElementById("m-share").hidden = long;
+      document.getElementById("m-long").hidden = !long;
+      tabShare.classList.toggle("active", !long);
+      tabLong.classList.toggle("active", long);
+    }
+    tabShare.addEventListener("click", function () { setMode(false); });
+    tabLong.addEventListener("click", function () { setMode(true); });
+
+    // ---------- sharing ----------
+    var shTotal = document.getElementById("sh-total");
+    var shGroups = document.getElementById("sh-groups");
+    var host = document.getElementById("sh-groups-host");
+    var dealTimer = null;
+    function shRender() {
+      document.getElementById("sh-total-v").textContent = shTotal.value;
+      document.getElementById("sh-groups-v").textContent = shGroups.value;
+    }
+    function resultText(per, rem, g) {
+      var en = g + " groups · " + I18N.t("l4.each") + " " + per +
+               (rem ? "  ·  " + I18N.t("l4.rem") + " " + rem : "");
+      var zh = g + " 組 · " + I18N.t("l4.each") + " " + per +
+               (rem ? "  ·  " + I18N.t("l4.rem") + " " + rem : "");
+      return I18N.pick(en, zh);
+    }
+    function deal() {
+      if (dealTimer) clearInterval(dealTimer);
+      var total = +shTotal.value, g = +shGroups.value;
+      var per = Math.floor(total / g), rem = total % g;
+      host.innerHTML = "";
+      var boxes = [];
+      for (var i = 0; i < g; i++) {
+        var b = document.createElement("div"); b.className = "group-box";
+        var cap = document.createElement("div"); cap.className = "grp-cap"; cap.textContent = (i + 1);
+        b.appendChild(cap); host.appendChild(b); boxes.push(b);
+      }
+      var leftover = document.createElement("div"); leftover.className = "group-box leftover-box";
+      var lcap = document.createElement("div"); lcap.className = "grp-cap";
+      lcap.textContent = I18N.pick("leftover", "剩下"); leftover.appendChild(lcap);
+      document.getElementById("sh-result").textContent = "";
+      // dealing order: round-robin full rounds, then leftovers
+      var seq = [];
+      for (var r = 0; r < per; r++) for (var c = 0; c < g; c++) seq.push(c);
+      for (var k = 0; k < rem; k++) seq.push(-1);
+      var idx = 0;
+      if (rem) host.appendChild(leftover);
+      dealTimer = setInterval(function () {
+        if (idx >= seq.length) {
+          clearInterval(dealTimer); dealTimer = null;
+          document.getElementById("sh-result").textContent = resultText(per, rem, g);
+          if (window.mascot) {
+            window.mascot.setMood("celebrate");
+            window.mascot.say(total + " ÷ " + g + " = " + per + (rem ? " r " + rem : ""),
+                              total + " ÷ " + g + " = " + per + (rem ? " 餘 " + rem : ""));
+            setTimeout(function(){ if(window.mascot) window.mascot.setMood("happy"); }, 1600);
+          }
+          return;
+        }
+        var t = seq[idx++];
+        var dot = document.createElement("div"); dot.className = "counter";
+        (t === -1 ? leftover : boxes[t]).appendChild(dot);
+      }, 90);
+    }
+    shTotal.addEventListener("input", shRender);
+    shGroups.addEventListener("input", shRender);
+    document.getElementById("sh-deal").addEventListener("click", deal);
+
+    // ---------- long division engine ----------
+    function steps(D, d) {
+      var ds = String(D).split("").map(Number), out = [], cur = 0, q = "", started = false;
+      for (var i = 0; i < ds.length; i++) {
+        cur = cur * 10 + ds[i];
+        if (!started && cur < d) { out.push({ t: "small", D: cur, d: d, bring: ds[i] }); continue; }
+        started = true;
+        var qd = Math.floor(cur / d), prod = qd * d, rem = cur - prod;
+        out.push({ t: "div", bring: ds[i], cur: cur, d: d, q: qd, prod: prod, rem: rem });
+        q += qd; cur = rem;
+      }
+      return { list: out, quotient: q === "" ? 0 : parseInt(q, 10), remainder: cur };
+    }
+    function renderLD(hostEl, qEl, remEl, D, d) {
+      var info = steps(D, d);
+      hostEl.innerHTML = ""; var lines = [];
+      info.list.forEach(function (s) {
+        var div = document.createElement("div"); div.className = "ld-line";
+        if (s.t === "small") {
+          div.textContent = I18N.t("l4.tooSmall").replace("{D}", s.D).replace("{d}", s.d);
+        } else {
+          div.textContent = I18N.t("l4.divLine").replace(/{cur}/g, s.cur).replace(/{d}/g, s.d)
+            .replace(/{q}/g, s.q).replace(/{prod}/g, s.prod).replace(/{rem}/g, s.rem);
+        }
+        hostEl.appendChild(div); lines.push(div);
+      });
+      var last = document.createElement("div"); last.className = "ld-line";
+      var rtxt = info.remainder ? " r " + info.remainder : "";
+      last.textContent = I18N.t("l4.done").replace("{D}", D).replace("{d}", d)
+        .replace("{q}", info.quotient).replace("{r}", info.remainder ? (I18N.lang==="zh"?" 餘 "+info.remainder:" r "+info.remainder) : "");
+      hostEl.appendChild(last); lines.push(last);
+      var shown = 0;
+      qEl.textContent = "?"; remEl.textContent = "";
+      return {
+        info: info, lines: lines,
+        next: function () {
+          if (shown >= lines.length) return false;
+          lines.forEach(function (l) { l.classList.remove("cur"); });
+          lines[shown].classList.add("show", "cur");
+          if (shown === lines.length - 1) {
+            qEl.textContent = info.quotient;
+            remEl.textContent = info.remainder ? (I18N.t("l4.rem") + " " + info.remainder) : "";
+          }
+          shown++;
+          return shown < lines.length;
+        }
+      };
+    }
+
+    var ldCtl = null;
+    var ldPick = document.getElementById("ld-pick");
+    function ldBuild() {
+      var p = ldPick.value.split("/");
+      ldCtl = renderLD(document.getElementById("ld-lines"), document.getElementById("ld-q"),
+                       document.getElementById("ld-rem"), +p[0], +p[1]);
+    }
+    ldPick.addEventListener("change", ldBuild);
+    document.getElementById("ld-next").addEventListener("click", function () { if (ldCtl) ldCtl.next(); });
+    document.getElementById("ld-reset").addEventListener("click", ldBuild);
+
+    // ---------- worked example: 156 ÷ 12 ----------
+    var exCtl = null;
+    function exBuild() {
+      exCtl = renderLD(document.getElementById("ex-lines"),
+        document.createElement("span"), document.createElement("span"), 156, 12);
+    }
+    document.getElementById("ex-next").addEventListener("click", function () { if (exCtl) exCtl.next(); });
+    document.getElementById("ex-reset").addEventListener("click", exBuild);
+
+    // ---------- quiz ----------
+    NL.quiz(document.getElementById("quiz"), [
+      { prompt: { en: "What is 84 ÷ 12?", zh: "84 ÷ 12 等於多少？" },
+        options: ["6", "7", "8", "9"], answer: 1,
+        explain: { en: "12 × 7 = 84.", zh: "12 × 7 = 84。" } },
+      { prompt: { en: "Find 95 ÷ 4 (quotient and remainder).", zh: "計算 95 ÷ 4（商和餘數）。" },
+        options: ["22 r 3", "23 r 3", "23 r 1", "24 r 1"], answer: 1,
+        explain: { en: "4 × 23 = 92, and 95 − 92 = 3.", zh: "4 × 23 = 92，95 − 92 = 3。" } },
+      { prompt: { en: "90 stickers are shared equally among 15 children. How many each?",
+                  zh: "90 張貼紙平均分給 15 個小朋友，每人幾張？" },
+        options: ["5", "6", "7", "15"], answer: 1,
+        explain: { en: "90 ÷ 15 = 6.", zh: "90 ÷ 15 = 6。" } }
+    ]);
+
+    // ---------- init + language sync ----------
+    shRender(); ldBuild(); exBuild();
+    document.addEventListener("langchange", function () {
+      shRender();
+      var keepQ = document.getElementById("ld-q").textContent;
+      ldBuild(); exBuild(); // re-render lines in new language (resets steps)
+    });
+    if (window.mascot) window.mascot.say("Let's share things out fairly!", "我們來公平地分東西吧！");
+  })();
+  </script>
+</body>
+</html>

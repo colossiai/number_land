@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Number Land · Primary 4 Maths</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .hero-row { display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; }
+    .hero-copy { text-align: left; max-width: 460px; }
+    .count-note { text-align: center; color: var(--ink-soft); margin: 0 0 4px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">🌟 <span data-i18n="site.title"></span></a>
+    <button class="lang-btn" data-i18n="ui.lang" id="lang-btn"></button>
+  </header>
+
+  <section class="hero">
+    <div class="hero-row">
+      <div class="hero-mascot" id="hero-mascot"></div>
+      <div class="hero-copy">
+        <h1 data-i18n="site.title"></h1>
+        <p data-i18n="site.tagline"></p>
+      </div>
+    </div>
+  </section>
+
+  <div class="filters" id="filters"></div>
+  <p class="count-note" id="count-note"></p>
+  <div class="grid" id="grid"></div>
+
+  <script src="assets/js/lessons-data.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mascot.js"></script>
+  <script>
+  (function () {
+    var REGION_FLAG = { CN: "🇨🇳", HK: "🇭🇰", SG: "🇸🇬" };
+    var REGIONS = ["CN", "HK", "SG"];
+    var filter = "all";
+
+    // hero mascot
+    var hero = Mascot.create(document.getElementById("hero-mascot"), { side: "left" });
+
+    // filter buttons
+    var filtersHost = document.getElementById("filters");
+    var filterDefs = [{ key: "all", i18n: "ui.allRegions" }].concat(
+      REGIONS.map(function (r) { return { key: r, i18n: "ui.region." + r, flag: REGION_FLAG[r] }; }));
+    var filterBtns = filterDefs.map(function (def) {
+      var b = document.createElement("button");
+      b.className = "filter-btn" + (def.key === "all" ? " active" : "");
+      b.innerHTML = (def.flag ? def.flag + " " : "") + '<span data-i18n="' + def.i18n + '"></span>';
+      b.addEventListener("click", function () {
+        filter = def.key;
+        filterBtns.forEach(function (x) { x.classList.remove("active"); });
+        b.classList.add("active");
+        renderGrid();
+      });
+      filtersHost.appendChild(b);
+      return b;
+    });
+
+    // grid cards
+    var grid = document.getElementById("grid");
+    var note = document.getElementById("count-note");
+    var cards = window.LESSONS.map(function (lesson) {
+      var a = document.createElement("a");
+      a.className = "card";
+      a.href = "lessons/" + lesson.slug + "/index.html";
+      a.setAttribute("data-regions", lesson.regions.join(","));
+      var badges = lesson.regions.map(function (r) {
+        return '<span class="badge badge-' + r + '">' + REGION_FLAG[r] +
+               ' <span data-i18n="ui.region.' + r + '"></span></span>';
+      }).join("");
+      a.innerHTML =
+        '<div class="card-icon">' + lesson.icon + '</div>' +
+        '<div class="card-num">' + (lesson.n < 10 ? "0" + lesson.n : lesson.n) + '</div>' +
+        '<h3 class="card-title"></h3>' +
+        '<p class="card-blurb"></p>' +
+        '<div class="badges">' + badges + '</div>';
+      a._lesson = lesson;
+      a._title = a.querySelector(".card-title");
+      a._blurb = a.querySelector(".card-blurb");
+      grid.appendChild(a);
+      return a;
+    });
+
+    function renderGrid() {
+      var shown = 0;
+      cards.forEach(function (a) {
+        var ok = (filter === "all") || a._lesson.regions.indexOf(filter) >= 0;
+        a.style.display = ok ? "" : "none";
+        if (ok) shown++;
+        a._title.textContent = I18N.pick(a._lesson.en, a._lesson.zh);
+        a._blurb.textContent = I18N.pick(a._lesson.blurbEn, a._lesson.blurbZh);
+      });
+      note.textContent = (I18N.lang === "zh")
+        ? ("共 " + shown + " 個單元")
+        : (shown + " topics");
+    }
+
+    document.getElementById("lang-btn").addEventListener("click", function () { I18N.toggle(); });
+    document.addEventListener("langchange", function () { I18N.apply(); renderGrid(); });
+
+    I18N.apply();
+    renderGrid();
+    hero.say("Welcome to Number Land! Pick a topic to start.", "歡迎來到數字樂園！選一個單元開始吧。");
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fractions</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    .frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle;
+      font-weight: 800; line-height: 1; margin: 0 2px; }
+    .frac .top { border-bottom: 2px solid currentColor; padding: 0 4px; }
+    .frac .bot { padding: 0 4px; }
+    .pmbtn { border: none; background: #eef5ff; color: var(--brand-dk); font-weight: 800;
+      width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-size: 1.1rem; }
+    .pmbtn:hover { background: var(--brand); color: #fff; }
+    .stepper { display: inline-flex; align-items: center; gap: 6px; }
+    .stepval { font-size: 1.3rem; font-weight: 800; color: var(--brand-dk); min-width: 1.2em; text-align: center; }
+    .subhead { color: var(--brand-dk); font-size: 1.05rem; font-weight: 800; margin: 6px 0; }
+    .divline { border: none; border-top: 2px dashed var(--line); margin: 26px 0; }
+    .opbtn { border: 2px solid var(--brand); background: #fff; color: var(--brand-dk); font-weight: 800;
+      width: 34px; height: 34px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; }
+    .opbtn.on { background: var(--brand); color: #fff; }
+  </style>
+</head>
+<body data-lesson="6">
+  <main>
+    <section class="panel">
+      <h2 data-i18n="ui.concept"></h2>
+      <div class="with-mascot">
+        <div data-mascot="left"></div>
+        <div class="copy">
+          <p class="lead" data-i18n="l6.intro"></p>
+          <p data-i18n="l6.intro2"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.explore"></h2>
+
+      <div class="subhead" data-i18n="l6.eqTitle"></div>
+      <p class="muted" data-i18n="l6.eqHint"></p>
+      <div class="stage">
+        <svg id="eq-bar" viewBox="0 0 420 60" width="420" height="60"></svg>
+      </div>
+      <div class="controls" id="eq-controls"></div>
+      <div class="readout" id="eq-read"></div>
+      <div class="muted" id="eq-list"></div>
+
+      <hr class="divline">
+
+      <div class="subhead" data-i18n="l6.addTitle"></div>
+      <p class="muted" data-i18n="l6.addHint"></p>
+      <div class="stage">
+        <svg id="add-bars" viewBox="0 0 420 170" width="420" height="170"></svg>
+      </div>
+      <div class="controls" id="add-controls"></div>
+      <div class="row">
+        <button class="btn accent" id="add-combine" data-i18n="l6.combine"></button>
+        <button class="btn ghost" id="add-reset" data-i18n="ui.reset"></button>
+      </div>
+      <div class="readout" id="add-read"></div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.example"></h2>
+      <p data-i18n="l6.exTip"></p>
+      <div class="stage">
+        <svg id="ex-bars" viewBox="0 0 420 130" width="420" height="130"></svg>
+      </div>
+      <div class="row">
+        <button class="btn accent" id="ex-play" data-i18n="ui.play"></button>
+      </div>
+      <p class="readout" id="ex-line" style="font-size:1.1rem"></p>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.tryIt"></h2>
+      <div id="quiz"></div>
+    </section>
+  </main>
+
+  <script src="../../assets/js/lessons-data.js"></script>
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/widgets.js"></script>
+  <script src="../../assets/js/mascot.js"></script>
+  <script src="../../assets/js/lesson.js"></script>
+  <script>
+  (function () {
+    var NS = "http://www.w3.org/2000/svg";
+    I18N.register({
+      "l6.intro":   { en: "A fraction shows <b>part of a whole</b>. In <b>3/4</b>, the bottom number (denominator) says the whole is split into 4 equal parts, and the top number (numerator) says we take 3 of them.",
+                      zh: "分數表示<b>整體的一部分</b>。在 <b>3/4</b> 中，下面的數（分母）表示整體分成 4 等份，上面的數（分子）表示我們取其中 3 份。" },
+      "l6.intro2":  { en: "Cut each part into more pieces and you get an <b>equivalent fraction</b> — the same amount written differently. To add fractions, first make their parts the same size.",
+                      zh: "把每一份再切小，就得到<b>等值分數</b>──同樣多，只是寫法不同。要把分數相加，先把每份切成一樣大小。" },
+      "l6.eqTitle": { en: "Equivalent fractions", zh: "等值分數" },
+      "l6.eqHint":  { en: "Change the fraction with − / +, then slide × to cut every part into more pieces. The shaded amount never changes!",
+                      zh: "用 − / + 改變分數，再拖動「×」把每份切得更小。塗色的份量始終不變！" },
+      "l6.addTitle":{ en: "Add & subtract related fractions", zh: "相關分數的加減" },
+      "l6.addHint": { en: "Set two fractions and pick + or −. Press Combine to make the parts the same size and join them.",
+                      zh: "設定兩個分數並選 + 或 −，按「合併」把份化成同樣大小再相加（減）。" },
+      "l6.combine": { en: "Combine ▶", zh: "合併 ▶" },
+      "l6.numer":   { en: "top", zh: "分子" },
+      "l6.denom":   { en: "bottom", zh: "分母" },
+      "l6.times":   { en: "cut ×", zh: "切 ×" },
+      "l6.eqIs":    { en: "Equivalent fractions:", zh: "等值分數：" },
+      "l6.exTip":   { en: "Watch 1/4 + 1/2 become 1/4 + 2/4 = 3/4.", zh: "看 1/4 + 1/2 變成 1/4 + 2/4 = 3/4。" },
+      "l6.commonD": { en: "Same-size parts: change to", zh: "化成同份：" },
+      "l6.result":  { en: "Result", zh: "結果" }
+    });
+
+    // ---- helpers ----
+    function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { var t = b; b = a % b; a = t; } return a || 1; }
+    function lcm(a, b) { return a / gcd(a, b) * b; }
+    function simplify(n, d) { var g = gcd(n, d); return [n / g, d / g]; }
+    function fracHTML(n, d) {
+      return '<span class="frac"><span class="top">' + n + '</span><span class="bot">' + d + '</span></span>';
+    }
+    function mixedHTML(n, d) {
+      if (d === 0) return "—";
+      if (n === 0) return "0";
+      var w = Math.floor(n / d), r = n % d;
+      if (r === 0) return "" + w;
+      if (w === 0) return fracHTML(r, d);
+      return w + " " + fracHTML(r, d);
+    }
+    function rect(svg, x, y, w, h, fill) {
+      var r = document.createElementNS(NS, "rect");
+      r.setAttribute("x", x); r.setAttribute("y", y); r.setAttribute("width", w); r.setAttribute("height", h);
+      r.setAttribute("fill", fill); r.setAttribute("stroke", "#3a6fd0"); r.setAttribute("stroke-width", "1");
+      r.style.transition = "fill .3s";
+      svg.appendChild(r); return r;
+    }
+    function bar(svg, x, y, w, h, total, shaded, color) {
+      var cw = w / total;
+      for (var i = 0; i < total; i++) {
+        rect(svg, x + i * cw, y, cw, h, i < shaded ? color : "#eef5ff");
+      }
+    }
+    function stepper(getLabel, min, max, val, onChange) {
+      var wrap = document.createElement("span"); wrap.className = "stepper";
+      var lab = document.createElement("span"); lab.className = "muted";
+      var dn = document.createElement("button"); dn.className = "pmbtn"; dn.textContent = "−";
+      var v = document.createElement("span"); v.className = "stepval"; v.textContent = val;
+      var up = document.createElement("button"); up.className = "pmbtn"; up.textContent = "+";
+      function set(nv) { nv = Math.max(min, Math.min(max, nv)); val = nv; v.textContent = nv; onChange(nv); }
+      dn.addEventListener("click", function () { set(val - 1); });
+      up.addEventListener("click", function () { set(val + 1); });
+      wrap.appendChild(lab); wrap.appendChild(dn); wrap.appendChild(v); wrap.appendChild(up);
+      return { el: wrap, get: function () { return val; }, set: function (nv) { v.textContent = nv; val = nv; },
+               renderLabel: function () { lab.textContent = getLabel(); } };
+    }
+
+    // =================== Tool A: equivalent fractions ===================
+    var eqState = { n: 1, d: 2, k: 1 };
+    var eqCtrls = document.getElementById("eq-controls");
+    var eqN = stepper(function () { return I18N.t("l6.numer"); }, 0, 12, eqState.n, function (v) { eqState.n = v; renderEq(); });
+    var eqD = stepper(function () { return I18N.t("l6.denom"); }, 1, 12, eqState.d, function (v) {
+      eqState.d = v; if (eqState.n > v) { eqState.n = v; eqN.set(v); } renderEq();
+    });
+    var kWrap = document.createElement("label"); kWrap.style.display = "inline-flex"; kWrap.style.alignItems = "center"; kWrap.style.gap = "6px";
+    var kLab = document.createElement("span"); kLab.className = "muted";
+    var kVal = document.createElement("span"); kVal.className = "stepval"; kVal.textContent = "1";
+    var kRange = document.createElement("input"); kRange.type = "range"; kRange.min = "1"; kRange.max = "6"; kRange.value = "1";
+    kRange.addEventListener("input", function () { eqState.k = parseInt(kRange.value, 10); kVal.textContent = eqState.k; renderEq(); });
+    kWrap.appendChild(kLab); kWrap.appendChild(kRange); kWrap.appendChild(kVal);
+    eqCtrls.appendChild(eqN.el); eqCtrls.appendChild(eqD.el); eqCtrls.appendChild(kWrap);
+
+    function renderEq() {
+      var n = eqState.n, d = eqState.d, k = eqState.k;
+      var svg = document.getElementById("eq-bar"); svg.innerHTML = "";
+      bar(svg, 10, 8, 400, 44, d * k, n * k, "#ff8fb1");
+      document.getElementById("eq-read").innerHTML =
+        fracHTML(n, d) + ' = ' + fracHTML(n * k, d * k);
+      var list = [];
+      for (var i = 1; i <= 6; i++) list.push(fracHTML(n * i, d * i));
+      document.getElementById("eq-list").innerHTML = I18N.t("l6.eqIs") + " " + list.join(" = ");
+    }
+
+    // =================== Tool B: add / subtract ===================
+    var addState = { n1: 1, d1: 4, n2: 1, d2: 2, op: 1, combined: false }; // op: 1=+, -1=−
+    var addCtrls = document.getElementById("add-controls");
+    var a1n = stepper(function () { return I18N.t("l6.numer"); }, 0, 12, addState.n1, function (v) { addState.n1 = v; clampAdd(); resetCombine(); });
+    var a1d = stepper(function () { return I18N.t("l6.denom"); }, 2, 12, addState.d1, function (v) { addState.d1 = v; clampAdd(); resetCombine(); });
+    var opBtn = document.createElement("button"); opBtn.className = "opbtn on"; opBtn.textContent = "+";
+    opBtn.addEventListener("click", function () { addState.op *= -1; opBtn.textContent = addState.op > 0 ? "+" : "−"; resetCombine(); });
+    var a2n = stepper(function () { return I18N.t("l6.numer"); }, 0, 12, addState.n2, function (v) { addState.n2 = v; clampAdd(); resetCombine(); });
+    var a2d = stepper(function () { return I18N.t("l6.denom"); }, 2, 12, addState.d2, function (v) { addState.d2 = v; clampAdd(); resetCombine(); });
+    addCtrls.appendChild(a1n.el); addCtrls.appendChild(a1d.el);
+    addCtrls.appendChild(opBtn);
+    addCtrls.appendChild(a2n.el); addCtrls.appendChild(a2d.el);
+
+    function clampAdd() {
+      if (addState.n1 > addState.d1) { addState.n1 = addState.d1; a1n.set(addState.d1); }
+      if (addState.n2 > addState.d2) { addState.n2 = addState.d2; a2n.set(addState.d2); }
+    }
+    function resetCombine() { addState.combined = false; renderAdd(); }
+
+    function renderAdd() {
+      var s = addState;
+      var L = lcm(s.d1, s.d2);
+      var sh1 = s.n1 * (L / s.d1), sh2 = s.n2 * (L / s.d2);
+      var svg = document.getElementById("add-bars"); svg.innerHTML = "";
+      var total1 = s.combined ? L : s.d1, total2 = s.combined ? L : s.d2;
+      var shA = s.combined ? sh1 : s.n1, shB = s.combined ? sh2 : s.n2;
+      bar(svg, 10, 8, 400, 36, total1, shA, "#ff8fb1");
+      bar(svg, 10, 58, 400, 36, total2, shB, "#5b9bf3");
+      // result bar
+      var resNum = sh1 + s.op * sh2;
+      if (resNum < 0) resNum = 0;
+      bar(svg, 10, 118, 400, 36, L, Math.min(resNum, L), "#2fbf71");
+
+      var read;
+      if (!s.combined) {
+        read = fracHTML(s.n1, s.d1) + (s.op > 0 ? " + " : " − ") + fracHTML(s.n2, s.d2);
+      } else {
+        var simp = simplify(resNum, L);
+        read = fracHTML(s.n1 * (L / s.d1), L) + (s.op > 0 ? " + " : " − ") + fracHTML(s.n2 * (L / s.d2), L)
+             + " = " + fracHTML(resNum, L);
+        if (simp[1] !== L || resNum >= L) read += " = " + mixedHTML(simp[0], simp[1]);
+      }
+      document.getElementById("add-read").innerHTML = read;
+    }
+    document.getElementById("add-combine").addEventListener("click", function () { addState.combined = true; renderAdd(); });
+    document.getElementById("add-reset").addEventListener("click", function () {
+      addState = { n1: 1, d1: 4, n2: 1, d2: 2, op: 1, combined: false };
+      a1n.set(1); a1d.set(4); a2n.set(1); a2d.set(2); opBtn.textContent = "+"; renderAdd();
+    });
+
+    // =================== Worked example 1/4 + 1/2 ===================
+    var exLine = document.getElementById("ex-line");
+    var exSvg = document.getElementById("ex-bars");
+    function drawEx(step) {
+      exSvg.innerHTML = "";
+      // step 0: 1/4 and 1/2 ; step1: convert 1/2 -> 2/4 ; step2: result 3/4
+      bar(exSvg, 10, 8, 400, 32, 4, 1, "#ff8fb1");
+      bar(exSvg, 10, 48, 400, 32, step >= 1 ? 4 : 2, step >= 1 ? 2 : 1, "#5b9bf3");
+      if (step >= 2) bar(exSvg, 10, 90, 400, 32, 4, 3, "#2fbf71");
+      var lines = [
+        { en: "Start: 1/4 + 1/2. The parts are different sizes.", zh: "開始：1/4 + 1/2，份的大小不同。" },
+        { en: "Cut the halves into quarters: 1/2 = 2/4.", zh: "把「半」切成「四分之一」：1/2 = 2/4。" },
+        { en: "Now add: 1/4 + 2/4 = 3/4. 🎉", zh: "現在相加：1/4 + 2/4 = 3/4。🎉" }
+      ];
+      exLine.innerHTML = I18N.pick(lines[step].en, lines[step].zh);
+    }
+    document.getElementById("ex-play").addEventListener("click", function () {
+      var s = 0; drawEx(0);
+      var t = setInterval(function () { s++; if (s > 2) { clearInterval(t); return; } drawEx(s); }, 1300);
+    });
+
+    // =================== Quiz ===================
+    NL.quiz(document.getElementById("quiz"), [
+      { prompt: { en: "Which fraction is equal to 1/2?", zh: "哪一個分數等於 1/2？" },
+        options: ["2/4", "2/3", "1/3", "3/4"], answer: 0,
+        explain: { en: "1/2 = 2/4: cut each half into two — same amount.", zh: "1/2 = 2/4：把每半再切成兩份，份量相同。" } },
+      { prompt: { en: "What is 1/4 + 1/2?", zh: "1/4 + 1/2 等於多少？" },
+        options: ["3/4", "2/6", "1/3", "3/8"], answer: 0,
+        explain: { en: "1/2 = 2/4, so 1/4 + 2/4 = 3/4.", zh: "1/2 = 2/4，所以 1/4 + 2/4 = 3/4。" } },
+      { prompt: { en: "What is 3/5 − 1/5?", zh: "3/5 − 1/5 等於多少？" },
+        options: ["2/5", "2/0", "4/5", "2/10"], answer: 0,
+        explain: { en: "Same denominator: 3 − 1 = 2 fifths = 2/5.", zh: "分母相同：3 − 1 = 2 個五分之一 = 2/5。" } }
+    ]);
+
+    // ---- language + initial render ----
+    function renderAll() {
+      eqN.renderLabel(); eqD.renderLabel();
+      a1n.renderLabel(); a1d.renderLabel(); a2n.renderLabel(); a2d.renderLabel();
+      kLab.textContent = I18N.t("l6.times");
+      renderEq(); renderAdd();
+    }
+    document.addEventListener("langchange", renderAll);
+    renderAll();
+    if (window.mascot) window.mascot.say("Fractions are just pizza slices! Let's slice some.", "分數就像披薩切片！一起來切切看。");
+  })();
+  </script>
+</body>
+</html>

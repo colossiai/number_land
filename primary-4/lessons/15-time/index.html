@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Time</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    .clock-wrap { display: flex; gap: 22px; align-items: center; justify-content: center; flex-wrap: wrap; }
+    #clock { touch-action: none; cursor: grab; user-select: none; }
+    #clock.grabbing { cursor: grabbing; }
+    .time-cards { display: flex; flex-direction: column; gap: 10px; }
+    .time-card { background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 10px 16px; text-align: center; }
+    .time-card .lbl { font-size: 0.78rem; font-weight: 700; color: var(--ink-soft); }
+    .time-card .big { font-size: 1.8rem; font-weight: 800; color: var(--brand-dk); font-variant-numeric: tabular-nums; }
+    .setter { display: flex; gap: 4px; align-items: center; justify-content: center; }
+    .setter button { border: none; background: #eef5ff; color: var(--brand-dk); font-weight: 800;
+      width: 30px; height: 28px; border-radius: 8px; cursor: pointer; }
+    .setter button:hover { background: var(--brand); color: #fff; }
+    .setter .name { font-size: 0.8rem; font-weight: 700; min-width: 42px; }
+    .elapsed-grid { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; margin: 8px 0; }
+    .elapsed-box { background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+    .elapsed-box .ttl { font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); text-align: center; margin-bottom: 6px; }
+    .clock-row { display: flex; gap: 8px; }
+  </style>
+</head>
+<body data-lesson="15">
+  <main>
+    <section class="panel">
+      <h2 data-i18n="ui.concept"></h2>
+      <div class="with-mascot">
+        <div data-mascot="left"></div>
+        <div class="copy">
+          <p class="lead" data-i18n="l15.intro"></p>
+          <p data-i18n="l15.intro2"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.explore"></h2>
+      <p class="muted" data-i18n="l15.exploreHint"></p>
+      <div class="stage">
+        <div class="clock-wrap">
+          <svg id="clock" viewBox="0 0 200 200" width="210" height="210" aria-hidden="true">
+            <circle cx="100" cy="100" r="94" fill="#fff" stroke="#3a6fd0" stroke-width="4"/>
+            <g id="ticks"></g>
+            <g id="nums" font-size="15" font-weight="700" fill="#22324a"
+               text-anchor="middle" dominant-baseline="central"></g>
+            <line id="hHand" x1="100" y1="100" x2="100" y2="58" stroke="#22324a" stroke-width="6" stroke-linecap="round"/>
+            <line id="mHand" x1="100" y1="100" x2="100" y2="32" stroke="#5b9bf3" stroke-width="4" stroke-linecap="round"/>
+            <circle cx="100" cy="100" r="6" fill="#e85f8c"/>
+          </svg>
+          <div class="time-cards">
+            <div class="time-card"><div class="lbl" data-i18n="l15.h12"></div><div class="big" id="t12"></div></div>
+            <div class="time-card"><div class="lbl" data-i18n="l15.h24"></div><div class="big" id="t24"></div></div>
+            <div class="setter">
+              <span class="name" data-i18n="l15.hour"></span>
+              <button id="h-dn">−</button><button id="h-up">+</button>
+              <span class="name" data-i18n="l15.min"></span>
+              <button id="m-dn">−</button><button id="m-up">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="muted" data-i18n="l15.dragHint"></p>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="l15.elapsedTitle"></h2>
+      <div class="elapsed-grid">
+        <div class="elapsed-box">
+          <div class="ttl" data-i18n="l15.start"></div>
+          <div class="setter">
+            <button id="s-hdn">−</button><span class="name" id="s-h">9</span><button id="s-hup">+</button>
+            <span>:</span>
+            <button id="s-mdn">−</button><span class="name" id="s-m">20</span><button id="s-mup">+</button>
+          </div>
+        </div>
+        <div class="elapsed-box">
+          <div class="ttl" data-i18n="l15.end"></div>
+          <div class="setter">
+            <button id="e-hdn">−</button><span class="name" id="e-h">11</span><button id="e-hup">+</button>
+            <span>:</span>
+            <button id="e-mdn">−</button><span class="name" id="e-m">5</span><button id="e-mup">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="stage">
+        <canvas id="nline" width="540" height="120"></canvas>
+      </div>
+      <div class="readout" id="dur"></div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.example"></h2>
+      <p data-i18n="l15.exTip"></p>
+      <div class="row">
+        <button class="btn accent" id="ex-play" data-i18n="ui.play"></button>
+      </div>
+      <p class="readout" id="ex-line" style="font-size:1.05rem"></p>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.tryIt"></h2>
+      <div id="quiz"></div>
+    </section>
+  </main>
+
+  <script src="../../assets/js/lessons-data.js"></script>
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/widgets.js"></script>
+  <script src="../../assets/js/mascot.js"></script>
+  <script src="../../assets/js/lesson.js"></script>
+  <script>
+  (function () {
+    I18N.register({
+      "l15.intro":  { en: "Clocks come in two styles. The <b>12-hour</b> clock uses am (morning) and pm (afternoon/evening). The <b>24-hour</b> clock counts straight from 00:00 to 23:59 — no am/pm needed.",
+                      zh: "時間有兩種寫法。<b>12 小時制</b>用上午 (am) 和下午 (pm)。<b>24 小時制</b>從 00:00 一直數到 23:59，不需要分上下午。" },
+      "l15.intro2": { en: "Drag the minute hand or use the buttons, and watch both clocks stay in step.",
+                      zh: "拖動分針或使用按鈕，看看兩種時制如何同步變化。" },
+      "l15.exploreHint": { en: "Drag the long (blue) minute hand around the clock, or change the hour and minute below.",
+                           zh: "拖動藍色的長分針，或在下面改變時和分。" },
+      "l15.dragHint": { en: "Tip: pm times are 12:00 and after. 1 pm = 13:00, 8 pm = 20:00.",
+                        zh: "提示：下午從 12:00 起算。下午 1 時 = 13:00，下午 8 時 = 20:00。" },
+      "l15.h12": { en: "12-hour", zh: "12 小時制" },
+      "l15.h24": { en: "24-hour", zh: "24 小時制" },
+      "l15.hour": { en: "Hour", zh: "時" },
+      "l15.min": { en: "Min", zh: "分" },
+      "l15.elapsedTitle": { en: "How much time has passed?", zh: "經過了多少時間？" },
+      "l15.start": { en: "Start", zh: "開始" },
+      "l15.end": { en: "End", zh: "結束" },
+      "l15.exTip": { en: "Two classic questions, solved step by step.", zh: "兩道經典題，逐步解答。" },
+      "l15.am": { en: "am", zh: "上午" },
+      "l15.pm": { en: "pm", zh: "下午" },
+      "l15.hrUnit": { en: "h", zh: "小時" },
+      "l15.minUnit": { en: "min", zh: "分" }
+    });
+
+    function pad(n) { return (n < 10 ? "0" : "") + n; }
+    function fmt24(h, m) { return pad(h) + ":" + pad(m); }
+    function fmt12(h, m) {
+      var period = h < 12 ? I18N.t("l15.am") : I18N.t("l15.pm");
+      var h12 = h % 12; if (h12 === 0) h12 = 12;
+      // In Chinese the period goes before the time; in English after.
+      return I18N.lang === "zh"
+        ? (period + " " + h12 + ":" + pad(m))
+        : (h12 + ":" + pad(m) + " " + period);
+    }
+
+    // ---------- clock ----------
+    var h = 10, m = 8;
+    var ticks = document.getElementById("ticks");
+    var nums = document.getElementById("nums");
+    (function buildFace() {
+      var svgns = "http://www.w3.org/2000/svg";
+      for (var i = 0; i < 12; i++) {
+        var ang = i * 30 * Math.PI / 180;
+        var x1 = 100 + 84 * Math.sin(ang), y1 = 100 - 84 * Math.cos(ang);
+        var x2 = 100 + 92 * Math.sin(ang), y2 = 100 - 92 * Math.cos(ang);
+        var ln = document.createElementNS(svgns, "line");
+        ln.setAttribute("x1", x1.toFixed(1)); ln.setAttribute("y1", y1.toFixed(1));
+        ln.setAttribute("x2", x2.toFixed(1)); ln.setAttribute("y2", y2.toFixed(1));
+        ln.setAttribute("stroke", "#9bb4e0"); ln.setAttribute("stroke-width", "2");
+        ticks.appendChild(ln);
+        var num = i === 0 ? 12 : i;
+        var tx = 100 + 72 * Math.sin(ang), ty = 100 - 72 * Math.cos(ang);
+        var t = document.createElementNS(svgns, "text");
+        t.setAttribute("x", tx.toFixed(1)); t.setAttribute("y", ty.toFixed(1));
+        t.textContent = num; nums.appendChild(t);
+      }
+    })();
+    var hHand = document.getElementById("hHand"), mHand = document.getElementById("mHand");
+    function drawClock() {
+      var ha = (h % 12) * 30 + m * 0.5, ma = m * 6;
+      hHand.setAttribute("transform", "rotate(" + ha + " 100 100)");
+      mHand.setAttribute("transform", "rotate(" + ma + " 100 100)");
+      document.getElementById("t12").textContent = fmt12(h, m);
+      document.getElementById("t24").textContent = fmt24(h, m);
+    }
+    function bumpMin(d) { var t = h * 60 + m + d; t = (t % 1440 + 1440) % 1440; h = Math.floor(t / 60); m = t % 60; drawClock(); }
+    function bumpHour(d) { h = (h + d % 24 + 24) % 24; drawClock(); }
+    document.getElementById("m-up").addEventListener("click", function () { bumpMin(1); });
+    document.getElementById("m-dn").addEventListener("click", function () { bumpMin(-1); });
+    document.getElementById("h-up").addEventListener("click", function () { bumpHour(1); });
+    document.getElementById("h-dn").addEventListener("click", function () { bumpHour(-1); });
+
+    // drag the minute hand
+    var clock = document.getElementById("clock");
+    var dragging = false;
+    function setFromPointer(ev) {
+      var r = clock.getBoundingClientRect();
+      var px = (ev.clientX - r.left) / r.width * 200 - 100;
+      var py = (ev.clientY - r.top) / r.height * 200 - 100;
+      var deg = Math.atan2(px, -py) * 180 / Math.PI; if (deg < 0) deg += 360;
+      var newM = Math.round(deg / 6) % 60;
+      // carry the hour when the minute hand crosses 12
+      if (m >= 45 && newM <= 15) h = (h + 1) % 24;
+      else if (m <= 15 && newM >= 45) h = (h + 23) % 24;
+      m = newM; drawClock();
+    }
+    clock.addEventListener("pointerdown", function (ev) {
+      dragging = true; clock.classList.add("grabbing"); clock.setPointerCapture(ev.pointerId); setFromPointer(ev);
+    });
+    clock.addEventListener("pointermove", function (ev) { if (dragging) setFromPointer(ev); });
+    clock.addEventListener("pointerup", function () { dragging = false; clock.classList.remove("grabbing"); });
+    clock.addEventListener("pointercancel", function () { dragging = false; clock.classList.remove("grabbing"); });
+
+    // ---------- elapsed time ----------
+    var st = { h: 9, m: 20 }, en = { h: 11, m: 5 };
+    var nl = document.getElementById("nline");
+    var jump = 0; // 0..1 animation progress
+
+    function clampSetter(o, field, d, step) {
+      if (field === "h") o.h = (o.h + d + 24) % 24;
+      else { var t = o.m + d * step; o.m = (t + 60) % 60; }
+    }
+    function bindSetter(prefix, obj) {
+      document.getElementById(prefix + "-hup").addEventListener("click", function(){ clampSetter(obj,"h",1); refreshElapsed(true); });
+      document.getElementById(prefix + "-hdn").addEventListener("click", function(){ clampSetter(obj,"h",-1); refreshElapsed(true); });
+      document.getElementById(prefix + "-mup").addEventListener("click", function(){ clampSetter(obj,"m",1,5); refreshElapsed(true); });
+      document.getElementById(prefix + "-mdn").addEventListener("click", function(){ clampSetter(obj,"m",-1,5); refreshElapsed(true); });
+    }
+    bindSetter("s", st); bindSetter("e", en);
+
+    function durationMin() {
+      var d = (en.h * 60 + en.m) - (st.h * 60 + st.m);
+      if (d < 0) d += 1440;
+      return d;
+    }
+    function drawNumberLine() {
+      var ctx = nl.getContext("2d");
+      var W = nl.width, H = nl.height, L = 30, R = 30, y = 70;
+      ctx.clearRect(0, 0, W, H);
+      var s = st.h * 60 + st.m, e = en.h * 60 + en.m; if (e < s) e += 1440;
+      var t0 = Math.floor(s / 60) * 60, t1 = Math.ceil(e / 60) * 60;
+      if (t1 === t0) t1 = t0 + 60;
+      var span = t1 - t0;
+      function X(t) { return L + (t - t0) / span * (W - L - R); }
+      // base line
+      ctx.strokeStyle = "#9bb4e0"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(W - R, y); ctx.stroke();
+      // hour ticks
+      ctx.font = "12px 'Segoe UI', system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "top";
+      for (var t = t0; t <= t1; t += 60) {
+        var x = X(t);
+        ctx.strokeStyle = "#c9d8f5"; ctx.beginPath(); ctx.moveTo(x, y - 6); ctx.lineTo(x, y + 6); ctx.stroke();
+        var hh = Math.floor((t % 1440) / 60);
+        ctx.fillStyle = "#5a6b85"; ctx.fillText(fmt24(hh, 0), x, y + 10);
+      }
+      // jump arc (animated)
+      var xs = X(s), xe = X(e), xcur = xs + (xe - xs) * jump;
+      ctx.strokeStyle = "#ff8fb1"; ctx.lineWidth = 3; ctx.beginPath();
+      ctx.moveTo(xs, y); ctx.quadraticCurveTo((xs + xcur) / 2, y - 34, xcur, y); ctx.stroke();
+      // start & end markers
+      function dot(x, color, label) {
+        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill();
+        ctx.fillStyle = "#22324a"; ctx.textBaseline = "bottom"; ctx.fillText(label, x, y - 38); ctx.textBaseline = "top";
+      }
+      dot(xs, "#5b9bf3", fmt24(st.h, st.m));
+      dot(xe, "#e85f8c", fmt24(en.h, en.m));
+    }
+    function refreshElapsed(animate) {
+      document.getElementById("s-h").textContent = st.h; document.getElementById("s-m").textContent = pad(st.m);
+      document.getElementById("e-h").textContent = en.h; document.getElementById("e-m").textContent = pad(en.m);
+      var d = durationMin();
+      document.getElementById("dur").textContent =
+        Math.floor(d / 60) + " " + I18N.t("l15.hrUnit") + " " + (d % 60) + " " + I18N.t("l15.minUnit");
+      if (animate) { jump = 0; var step = function(){ jump = Math.min(1, jump + 0.04); drawNumberLine(); if (jump < 1) requestAnimationFrame(step); }; step(); }
+      else drawNumberLine();
+    }
+
+    // ---------- worked example ----------
+    var exLine = document.getElementById("ex-line");
+    var EX = [
+      { en: "① Convert 3:45 pm to 24-hour time.", zh: "① 把下午 3:45 轉成 24 小時制。" },
+      { en: "pm hours add 12: 3 + 12 = 15, so 3:45 pm = 15:45.", zh: "下午時數加 12：3 + 12 = 15，所以下午 3:45 = 15:45。" },
+      { en: "② How long from 9:20 to 11:05?", zh: "② 從 9:20 到 11:05 經過多久？" },
+      { en: "9:20 → 11:20 is 2 h, but 11:05 is 15 min earlier: 2 h − 15 min = 1 h 45 min.", zh: "9:20 → 11:20 是 2 小時，但 11:05 早了 15 分：2 小時 − 15 分 = 1 小時 45 分。" }
+    ];
+    function showEx(i) { exLine.textContent = I18N.pick(EX[i].en, EX[i].zh); }
+    var exShown = -1;
+    document.getElementById("ex-play").addEventListener("click", function () {
+      var i = 0; (function step(){ if (i >= EX.length) return; exShown = i; showEx(i); i++; setTimeout(step, 1700); })();
+    });
+
+    // ---------- quiz ----------
+    NL.quiz(document.getElementById("quiz"), [
+      { prompt: { en: "Write 3:45 pm in 24-hour time.", zh: "把下午 3:45 寫成 24 小時制。" },
+        options: [ "03:45", "13:45", "15:45", "17:45" ], answer: 2,
+        explain: { en: "pm: 3 + 12 = 15, so 15:45.", zh: "下午：3 + 12 = 15，所以是 15:45。" } },
+      { prompt: { en: "How long is it from 9:20 to 11:05?", zh: "從 9:20 到 11:05 經過多久？" },
+        options: [ { en: "1 h 25 min", zh: "1 小時 25 分" }, { en: "1 h 45 min", zh: "1 小時 45 分" },
+                   { en: "2 h 45 min", zh: "2 小時 45 分" }, { en: "1 h 15 min", zh: "1 小時 15 分" } ], answer: 1,
+        explain: { en: "9:20→11:20 is 2 h; 11:05 is 15 min less = 1 h 45 min.", zh: "9:20→11:20 是 2 小時；11:05 少 15 分 = 1 小時 45 分。" } },
+      { prompt: { en: "What is 20:30 in 12-hour time?", zh: "20:30 用 12 小時制是？" },
+        options: [ { en: "8:30 am", zh: "上午 8:30" }, { en: "10:30 pm", zh: "下午 10:30" },
+                   { en: "8:30 pm", zh: "下午 8:30" }, { en: "6:30 pm", zh: "下午 6:30" } ], answer: 2,
+        explain: { en: "20 − 12 = 8, and it is pm: 8:30 pm.", zh: "20 − 12 = 8，且是下午：下午 8:30。" } }
+    ]);
+
+    // ---------- init + language ----------
+    drawClock();
+    refreshElapsed(false);
+    document.addEventListener("langchange", function () {
+      drawClock(); refreshElapsed(false);
+      if (exShown >= 0) showEx(exShown);
+    });
+    if (window.mascot) window.mascot.say("Tick-tock! Let's read the clock.", "滴答滴答！一起來看時鐘吧。");
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Angles &amp; Directions</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    .angle-svg, .compass-svg { display: block; margin: 0 auto; cursor: grab; }
+    .angle-svg:active, .compass-svg:active { cursor: grabbing; }
+    .tick { stroke: #b9c8e6; stroke-width: 1; }
+    .tick.major { stroke: #7a93c4; stroke-width: 2; }
+    .tick-label { fill: var(--ink-soft); font-size: 10px; font-weight: 700; text-anchor: middle; }
+    .base-ray { stroke: #9bb0d6; stroke-width: 5; stroke-linecap: round; }
+    .mv-ray { stroke: var(--accent); stroke-width: 5; stroke-linecap: round; }
+    .mv-arc { fill: rgba(91,155,243,0.18); stroke: var(--brand); stroke-width: 2; }
+    .handle { fill: #fff; stroke: var(--accent-dk); stroke-width: 3; }
+    .vertex { fill: var(--brand-dk); }
+    .compass-ring { fill: #fff; stroke: var(--brand); stroke-width: 3; }
+    .compass-dir { fill: var(--ink-soft); font-size: 13px; font-weight: 800; text-anchor: middle; }
+    .compass-dir.NSEW { fill: var(--brand-dk); font-size: 15px; }
+    .needle-n { fill: var(--accent-dk); }
+    .needle-s { fill: #9bb0d6; }
+    .two-tools { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; align-items: flex-start; }
+    .tool-box { flex: 1; min-width: 280px; }
+    .tool-box h3 { text-align: center; color: var(--brand-dk); margin: 4px 0; }
+  </style>
+</head>
+<body data-lesson="8">
+  <main>
+    <section class="panel">
+      <h2 data-i18n="ui.concept"></h2>
+      <div class="with-mascot">
+        <div data-mascot="left"></div>
+        <div class="copy">
+          <p class="lead" data-i18n="l8.intro"></p>
+          <p data-i18n="l8.intro2"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.explore"></h2>
+      <div class="two-tools">
+        <div class="tool-box">
+          <h3 data-i18n="l8.protractor"></h3>
+          <div class="stage">
+            <svg class="angle-svg" id="angle-svg" viewBox="0 0 360 220" width="360" height="220"></svg>
+          </div>
+          <div class="readout" id="angle-read"></div>
+          <div class="center"><span class="chip" id="angle-chip"></span></div>
+          <p class="muted center" data-i18n="l8.protHint"></p>
+        </div>
+        <div class="tool-box">
+          <h3 data-i18n="l8.compass"></h3>
+          <div class="stage">
+            <svg class="compass-svg" id="compass-svg" viewBox="0 0 220 220" width="220" height="220"></svg>
+          </div>
+          <div class="readout" id="compass-read"></div>
+          <p class="muted center" data-i18n="l8.compHint"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.example"></h2>
+      <p data-i18n="l8.exTip"></p>
+      <div class="row">
+        <button class="btn accent" id="ex-play" data-i18n="ui.play"></button>
+      </div>
+      <p class="readout" id="ex-line" style="font-size:1.1rem"></p>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.tryIt"></h2>
+      <div id="quiz"></div>
+    </section>
+  </main>
+
+  <script src="../../assets/js/lessons-data.js"></script>
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/widgets.js"></script>
+  <script src="../../assets/js/mascot.js"></script>
+  <script src="../../assets/js/lesson.js"></script>
+  <script>
+  (function () {
+    I18N.register({
+      "l8.intro":  { en: "An <b>angle</b> is the amount of turn between two rays that share a corner (the vertex). We measure it in <b>degrees (°)</b> with a protractor.",
+                     zh: "<b>角</b>是兩條從同一個頂點射出的射線之間的旋轉量，我們用量角器以<b>度（°）</b>來量度。" },
+      "l8.intro2": { en: "A right angle is 90°. Smaller is acute, larger (up to 180°) is obtuse. Directions like North-East come from the 8-point compass.",
+                     zh: "直角是 90°，比它小的是銳角，比它大（到 180°）的是鈍角。像「東北」這種方向來自八方位羅盤。" },
+      "l8.protractor": { en: "Protractor", zh: "量角器" },
+      "l8.compass": { en: "8-point Compass", zh: "八方位羅盤" },
+      "l8.protHint": { en: "Drag anywhere to swing the pink ray.", zh: "拖動任意位置擺動粉紅射線。" },
+      "l8.compHint": { en: "Drag to spin the needle — it snaps to 8 directions.", zh: "拖動旋轉指針，會吸附到八個方向。" },
+      "l8.exTip":  { en: "Watch a 90° right angle, then a 135° obtuse angle.", zh: "看一個 90° 直角，再看一個 135° 鈍角。" },
+      "l8.acute":  { en: "Acute angle", zh: "銳角" },
+      "l8.right":  { en: "Right angle", zh: "直角" },
+      "l8.obtuse": { en: "Obtuse angle", zh: "鈍角" },
+      "l8.straight": { en: "Straight angle", zh: "平角" }
+    });
+
+    function classify(a) {
+      if (a >= 179.5) return "l8.straight";
+      if (a > 90.5) return "l8.obtuse";
+      if (a >= 89.5) return "l8.right";
+      return "l8.acute";
+    }
+
+    // ===== protractor tool =====
+    var svg = document.getElementById("angle-svg");
+    var SVGNS = "http://www.w3.org/2000/svg";
+    var VX = 180, VY = 185, R = 120, RP = 150;
+    var angle = 50; // degrees
+
+    function E(tag, attrs) {
+      var el = document.createElementNS(SVGNS, tag);
+      for (var k in attrs) el.setAttribute(k, attrs[k]);
+      return el;
+    }
+    // static protractor ticks + labels
+    (function buildProtractor() {
+      for (var d = 0; d <= 180; d += 10) {
+        var rad = d * Math.PI / 180;
+        var major = (d % 30 === 0);
+        var r1 = RP, r2 = RP - (major ? 14 : 8);
+        svg.appendChild(E("line", {
+          x1: VX + r1 * Math.cos(rad), y1: VY - r1 * Math.sin(rad),
+          x2: VX + r2 * Math.cos(rad), y2: VY - r2 * Math.sin(rad),
+          "class": "tick" + (major ? " major" : "")
+        }));
+        if (major) {
+          var rl = RP + 12;
+          var t = E("text", { x: VX + rl * Math.cos(rad), y: VY - rl * Math.sin(rad) + 4, "class": "tick-label" });
+          t.textContent = d;
+          svg.appendChild(t);
+        }
+      }
+    })();
+    var arc = E("path", { "class": "mv-arc" }); svg.appendChild(arc);
+    var baseRay = E("line", { x1: VX, y1: VY, x2: VX + R, y2: VY, "class": "base-ray" }); svg.appendChild(baseRay);
+    var mvRay = E("line", { "class": "mv-ray" }); svg.appendChild(mvRay);
+    var vertex = E("circle", { cx: VX, cy: VY, r: 6, "class": "vertex" }); svg.appendChild(vertex);
+    var handle = E("circle", { r: 11, "class": "handle" }); svg.appendChild(handle);
+
+    function drawAngle() {
+      var rad = angle * Math.PI / 180;
+      var hx = VX + R * Math.cos(rad), hy = VY - R * Math.sin(rad);
+      mvRay.setAttribute("x1", VX); mvRay.setAttribute("y1", VY);
+      mvRay.setAttribute("x2", hx); mvRay.setAttribute("y2", hy);
+      handle.setAttribute("cx", hx); handle.setAttribute("cy", hy);
+      var ar = 42;
+      var ex = VX + ar, ey = VY;
+      var fx = VX + ar * Math.cos(rad), fy = VY - ar * Math.sin(rad);
+      var large = angle > 180 ? 1 : 0;
+      arc.setAttribute("d", "M " + VX + " " + VY + " L " + ex + " " + ey +
+        " A " + ar + " " + ar + " 0 " + large + " 0 " + fx + " " + fy + " Z");
+      document.getElementById("angle-read").textContent = Math.round(angle) + "°";
+      var chip = document.getElementById("angle-chip");
+      chip.textContent = I18N.t(classify(angle));
+    }
+
+    function svgPoint(s, evt) {
+      var pt = s.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+      return pt.matrixTransform(s.getScreenCTM().inverse());
+    }
+    function setFromPointer(evt) {
+      var p = svgPoint(svg, evt);
+      var a = Math.atan2(VY - p.y, p.x - VX) * 180 / Math.PI;
+      if (a < 0) a = 0; if (a > 180) a = 180;
+      // gentle snap to 90 / 180 / 0
+      [0, 90, 180].forEach(function (s) { if (Math.abs(a - s) < 3) a = s; });
+      angle = a; drawAngle();
+    }
+    var dragging = false;
+    svg.addEventListener("pointerdown", function (e) { dragging = true; svg.setPointerCapture(e.pointerId); setFromPointer(e); });
+    svg.addEventListener("pointermove", function (e) { if (dragging) setFromPointer(e); });
+    svg.addEventListener("pointerup", function () { dragging = false; });
+    svg.addEventListener("pointercancel", function () { dragging = false; });
+
+    // ===== compass tool =====
+    var csvg = document.getElementById("compass-svg");
+    var CX = 110, CY = 110, CR = 78;
+    var DIRS = [
+      { en: "North", zh: "北", k: "N" }, { en: "North-East", zh: "東北", k: "NE" },
+      { en: "East", zh: "東", k: "E" }, { en: "South-East", zh: "東南", k: "SE" },
+      { en: "South", zh: "南", k: "S" }, { en: "South-West", zh: "西南", k: "SW" },
+      { en: "West", zh: "西", k: "W" }, { en: "North-West", zh: "西北", k: "NW" }
+    ];
+    var bearing = 45; // degrees clockwise from North
+    csvg.appendChild(E("circle", { cx: CX, cy: CY, r: CR + 14, "class": "compass-ring" }));
+    var dirLabels = [];
+    DIRS.forEach(function (d, i) {
+      var ang = i * 45 * Math.PI / 180; // clockwise from north
+      var rl = CR + 1;
+      var x = CX + rl * Math.sin(ang), y = CY - rl * Math.cos(ang) + 5;
+      var t = E("text", { x: x, y: y, "class": "compass-dir" + (i % 2 === 0 ? " NSEW" : "") });
+      csvg.appendChild(t); dirLabels.push(t);
+    });
+    // needle
+    var needleN = E("polygon", { "class": "needle-n" });
+    var needleS = E("polygon", { "class": "needle-s" });
+    csvg.appendChild(needleS); csvg.appendChild(needleN);
+    csvg.appendChild(E("circle", { cx: CX, cy: CY, r: 6, fill: "#22324a" }));
+
+    function drawCompass() {
+      var idx = Math.round(bearing / 45) % 8;
+      var ang = idx * 45 * Math.PI / 180;
+      var L = CR - 8;
+      var tipx = CX + L * Math.sin(ang), tipy = CY - L * Math.cos(ang);
+      var bx = CX - (L * 0.5) * Math.sin(ang), by = CY + (L * 0.5) * Math.cos(ang);
+      var perp = ang + Math.PI / 2, w = 8;
+      var lx = CX + w * Math.sin(perp), ly = CY - w * Math.cos(perp);
+      var rx = CX - w * Math.sin(perp), ry = CY + w * Math.cos(perp);
+      needleN.setAttribute("points", tipx + "," + tipy + " " + lx + "," + ly + " " + rx + "," + ry);
+      needleS.setAttribute("points", bx + "," + by + " " + lx + "," + ly + " " + rx + "," + ry);
+      var d = DIRS[idx];
+      document.getElementById("compass-read").textContent = (I18N.lang === "zh" ? d.zh : (d.en + " (" + d.k + ")"));
+    }
+    function setCompass(evt) {
+      var p = svgPoint(csvg, evt);
+      var dx = p.x - CX, dy = p.y - CY;
+      var b = Math.atan2(dx, -dy) * 180 / Math.PI; if (b < 0) b += 360;
+      bearing = b; drawCompass();
+    }
+    var cdrag = false;
+    csvg.addEventListener("pointerdown", function (e) { cdrag = true; csvg.setPointerCapture(e.pointerId); setCompass(e); });
+    csvg.addEventListener("pointermove", function (e) { if (cdrag) setCompass(e); });
+    csvg.addEventListener("pointerup", function () { cdrag = false; });
+    csvg.addEventListener("pointercancel", function () { cdrag = false; });
+
+    function renderDirLabels() {
+      DIRS.forEach(function (d, i) { dirLabels[i].textContent = (I18N.lang === "zh" ? d.zh : d.k); });
+    }
+
+    // ===== worked example =====
+    var exLine = document.getElementById("ex-line");
+    function exShow(a, key) {
+      angle = a; drawAngle();
+      exLine.textContent = Math.round(a) + "° — " + I18N.t(key);
+    }
+    document.getElementById("ex-play").addEventListener("click", function () {
+      var steps = [[90, "l8.right"], [135, "l8.obtuse"], [40, "l8.acute"]];
+      var i = 0;
+      (function step() {
+        if (i >= steps.length) return;
+        exShow(steps[i][0], steps[i][1]); i++; setTimeout(step, 1300);
+      })();
+    });
+
+    // ===== quiz =====
+    NL.quiz(document.getElementById("quiz"), [
+      { prompt: { en: "An angle that measures 120° is a…", zh: "一個 120° 的角是…" },
+        options: [ { en: "acute angle", zh: "銳角" }, { en: "right angle", zh: "直角" },
+                   { en: "obtuse angle", zh: "鈍角" }, { en: "straight angle", zh: "平角" } ],
+        answer: 2, explain: { en: "120° is between 90° and 180°, so it is obtuse.",
+                              zh: "120° 在 90° 與 180° 之間，所以是鈍角。" } },
+      { prompt: { en: "A right angle measures…", zh: "直角是多少度？" },
+        options: [ "45°", "90°", "120°", "180°" ], answer: 1,
+        explain: { en: "A right angle is exactly 90°.", zh: "直角剛好是 90°。" } },
+      { prompt: { en: "Which direction is exactly between North and East?",
+                  zh: "正好在「北」與「東」之間的方向是？" },
+        options: [ { en: "North-West (NW)", zh: "西北" }, { en: "North-East (NE)", zh: "東北" },
+                   { en: "South-East (SE)", zh: "東南" }, { en: "South-West (SW)", zh: "西南" } ],
+        answer: 1, explain: { en: "Between N and E is North-East.", zh: "北與東之間是東北。" } }
+    ]);
+
+    drawAngle(); drawCompass(); renderDirLabels();
+    document.addEventListener("langchange", function () {
+      drawAngle(); drawCompass(); renderDirLabels();
+      if (exLine.textContent) { /* leave last example text as-is until replayed */ }
+    });
+    if (window.mascot) window.mascot.say("Let's measure some angles! Drag the pink ray.", "一起來量角吧！拖動粉紅射線。");
+  })();
+  </script>
+</body>
+</html>

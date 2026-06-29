@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quadrilaterals</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    .quad-svg { width: 100%; max-width: 440px; height: auto; }
+    .vtx { fill: var(--accent); stroke: #fff; stroke-width: 3; cursor: grab; }
+    .vtx:active { cursor: grabbing; }
+    .quad-fill { fill: rgba(91,155,243,0.18); stroke: var(--brand-dk); stroke-width: 3; stroke-linejoin: round; }
+    .type-name { font-size: 1.6rem; font-weight: 800; color: var(--brand-dk); }
+    .props { list-style: none; padding: 0; max-width: 360px; margin: 10px auto; text-align: left; }
+    .props li { padding: 6px 10px; border-radius: 10px; margin: 4px 0; font-weight: 600; background: #f7faff; }
+    .props li .mark { font-weight: 800; margin-right: 8px; }
+    .props li.yes { color: var(--good); } .props li.yes .mark::before { content: "✓"; }
+    .props li.no  { color: var(--ink-soft); opacity: .7; } .props li.no .mark::before { content: "✗"; }
+  </style>
+</head>
+<body data-lesson="11">
+  <main>
+    <section class="panel">
+      <h2 data-i18n="ui.concept"></h2>
+      <div class="with-mascot">
+        <div data-mascot="left"></div>
+        <div class="copy">
+          <p class="lead" data-i18n="l11.intro"></p>
+          <p data-i18n="l11.intro2"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.explore"></h2>
+      <p class="muted" data-i18n="l11.exploreHint"></p>
+      <div class="stage">
+        <svg class="quad-svg" id="quad" viewBox="0 0 420 320"></svg>
+      </div>
+      <div class="center type-name" id="q-type"></div>
+      <ul class="props" id="q-props"></ul>
+      <div class="controls">
+        <button class="btn" data-preset="square"></button>
+        <button class="btn" data-preset="rectangle"></button>
+        <button class="btn" data-preset="parallelogram"></button>
+        <button class="btn" data-preset="rhombus"></button>
+        <button class="btn" data-preset="trapezoid"></button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.example"></h2>
+      <p data-i18n="l11.exTip"></p>
+      <div class="controls">
+        <button class="btn accent" id="ex-play" data-i18n="ui.play"></button>
+      </div>
+      <p class="readout" id="ex-line" style="font-size:1.05rem"></p>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.tryIt"></h2>
+      <div id="quiz"></div>
+    </section>
+  </main>
+
+  <script src="../../assets/js/lessons-data.js"></script>
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/widgets.js"></script>
+  <script src="../../assets/js/mascot.js"></script>
+  <script src="../../assets/js/lesson.js"></script>
+  <script>
+  (function () {
+    I18N.register({
+      "l11.intro":  { en: "A <b>quadrilateral</b> is any shape with 4 straight sides. Special quadrilaterals get special names because of their sides and angles.",
+                      zh: "<b>四邊形</b>是任何有 4 條直邊的圖形。一些特別的四邊形因為邊和角的特點而有專屬名稱。" },
+      "l11.intro2": { en: "Drag the corners, or tap a button to morph the shape. The name and the checklist update live.",
+                      zh: "拖動頂點，或按按鈕變形。名稱和特點清單會即時更新。" },
+      "l11.exploreHint": { en: "Drag any corner to change the shape and discover what it becomes.",
+                           zh: "拖動任何頂點改變形狀，看看它會變成什麼。" },
+      "l11.exTip":  { en: "Watch a square slowly morph and see which properties it keeps or loses.",
+                      zh: "看正方形慢慢變形，觀察哪些特點被保留、哪些消失。" },
+      "l11.square":        { en: "Square", zh: "正方形" },
+      "l11.rectangle":     { en: "Rectangle", zh: "長方形" },
+      "l11.parallelogram": { en: "Parallelogram", zh: "平行四邊形" },
+      "l11.rhombus":       { en: "Rhombus", zh: "菱形" },
+      "l11.trapezoid":     { en: "Trapezoid", zh: "梯形" },
+      "l11.quad":          { en: "Quadrilateral", zh: "一般四邊形" },
+      "l11.pRight":  { en: "4 right angles", zh: "4 個直角" },
+      "l11.pPar":    { en: "Opposite sides parallel", zh: "對邊平行" },
+      "l11.pEq":     { en: "Opposite sides equal", zh: "對邊相等" },
+      "l11.pAllEq":  { en: "All 4 sides equal", zh: "四邊都相等" },
+      "l11.exStep1": { en: "We start with a square: 4 equal sides and 4 right angles.", zh: "由正方形開始：四邊相等，四個直角。" },
+      "l11.exStep2": { en: "Stretch it → a rectangle: still 4 right angles, but sides no longer all equal.", zh: "把它拉長 → 長方形：仍有四個直角，但邊不再都相等。" },
+      "l11.exStep3": { en: "Lean it over → a parallelogram: opposite sides parallel, but no right angles.", zh: "把它斜推 → 平行四邊形：對邊平行，但沒有直角。" },
+      "l11.exStep4": { en: "Move one corner → a trapezoid: now only one pair of sides is parallel.", zh: "移動一個頂點 → 梯形：現在只有一對邊平行。" }
+    });
+
+    var SVGNS="http://www.w3.org/2000/svg";
+    var svg=document.getElementById("quad");
+    var PRESETS={
+      square:        [[130,80],[300,80],[300,250],[130,250]],
+      rectangle:     [[70,95],[350,95],[350,235],[70,235]],
+      parallelogram: [[120,85],[320,85],[270,245],[70,245]],
+      rhombus:       [[210,70],[330,175],[210,280],[90,175]],
+      trapezoid:     [[140,90],[280,90],[350,245],[70,245]]
+    };
+    var V=PRESETS.square.map(function(p){return {x:p[0],y:p[1]};});
+
+    var poly=document.createElementNS(SVGNS,"polygon"); poly.setAttribute("class","quad-fill"); svg.appendChild(poly);
+    var verts=V.map(function(v,i){ var c=document.createElementNS(SVGNS,"circle"); c.setAttribute("class","vtx"); c.setAttribute("r","11"); c.dataset.i=i; svg.appendChild(c); return c; });
+
+    function sub(a,b){return {x:a.x-b.x,y:a.y-b.y};}
+    function len(v){return Math.hypot(v.x,v.y);}
+    function cross(a,b){return a.x*b.y - a.y*b.x;}
+    function dot(a,b){return a.x*b.x + a.y*b.y;}
+    function parallel(a,b){ return Math.abs(cross({x:a.x/len(a),y:a.y/len(a)},{x:b.x/len(b),y:b.y/len(b)})) < 0.09; }
+    function angleAt(i){
+      var p=V[i], a=V[(i+3)%4], b=V[(i+1)%4];
+      var v1=sub(a,p), v2=sub(b,p);
+      var d=dot(v1,v2)/(len(v1)*len(v2)); d=Math.max(-1,Math.min(1,d));
+      return Math.acos(d)*180/Math.PI;
+    }
+
+    var state={type:"l11.square", props:{r:true,par:true,eq:true,all:true}};
+    function classify(){
+      var s=[len(sub(V[1],V[0])),len(sub(V[2],V[1])),len(sub(V[3],V[2])),len(sub(V[0],V[3]))];
+      var tEq=8;
+      var oppEq=Math.abs(s[0]-s[2])<tEq && Math.abs(s[1]-s[3])<tEq;
+      var allEq=(Math.max.apply(null,s)-Math.min.apply(null,s))<tEq;
+      var par1=parallel(sub(V[1],V[0]),sub(V[3],V[2]));
+      var par2=parallel(sub(V[2],V[1]),sub(V[0],V[3]));
+      var rights=[0,1,2,3].filter(function(i){return Math.abs(angleAt(i)-90)<4;}).length;
+      var fourRight=rights>=4;
+      var type="l11.quad";
+      if(par1&&par2){
+        if(fourRight&&allEq) type="l11.square";
+        else if(fourRight) type="l11.rectangle";
+        else if(allEq) type="l11.rhombus";
+        else type="l11.parallelogram";
+      } else if(par1||par2){ type="l11.trapezoid"; }
+      state={type:type, props:{r:fourRight, par:(par1&&par2), eq:oppEq, all:allEq}};
+    }
+
+    function render(){
+      poly.setAttribute("points", V.map(function(v){return v.x+","+v.y;}).join(" "));
+      verts.forEach(function(c,i){ c.setAttribute("cx",V[i].x); c.setAttribute("cy",V[i].y); });
+      classify();
+      renderText();
+    }
+    function renderText(){
+      document.getElementById("q-type").textContent=I18N.t(state.type);
+      var ul=document.getElementById("q-props"); ul.innerHTML="";
+      [["l11.pRight",state.props.r],["l11.pPar",state.props.par],["l11.pEq",state.props.eq],["l11.pAllEq",state.props.all]]
+        .forEach(function(row){
+          var li=document.createElement("li"); li.className=row[1]?"yes":"no";
+          li.innerHTML='<span class="mark"></span>'+I18N.t(row[0]); ul.appendChild(li);
+        });
+      document.querySelectorAll("[data-preset]").forEach(function(b){
+        b.textContent=I18N.t("l11."+b.getAttribute("data-preset"));
+      });
+    }
+
+    // morph animation
+    var raf=null;
+    function morphTo(target){
+      if(raf)cancelAnimationFrame(raf);
+      var from=V.map(function(v){return {x:v.x,y:v.y};});
+      var startTs=null,dur=600;
+      function tick(ts){ if(!startTs)startTs=ts; var k=Math.min(1,(ts-startTs)/dur);
+        var e=1-Math.pow(1-k,3);
+        V.forEach(function(v,i){ v.x=from[i].x+(target[i][0]-from[i].x)*e; v.y=from[i].y+(target[i][1]-from[i].y)*e; });
+        render(); if(k<1) raf=requestAnimationFrame(tick);
+      }
+      raf=requestAnimationFrame(tick);
+    }
+    document.querySelectorAll("[data-preset]").forEach(function(b){
+      b.addEventListener("click", function(){ morphTo(PRESETS[b.getAttribute("data-preset")]); });
+    });
+
+    // drag
+    var dragging=null;
+    function toSvg(evt){ var pt=svg.createSVGPoint(); pt.x=evt.clientX; pt.y=evt.clientY; return pt.matrixTransform(svg.getScreenCTM().inverse()); }
+    verts.forEach(function(c){ c.addEventListener("pointerdown", function(e){ dragging=+c.dataset.i; c.setPointerCapture(e.pointerId); e.preventDefault(); }); });
+    svg.addEventListener("pointermove", function(e){ if(dragging===null)return; var p=toSvg(e);
+      V[dragging].x=Math.max(14,Math.min(406,p.x)); V[dragging].y=Math.max(14,Math.min(306,p.y)); render(); });
+    svg.addEventListener("pointerup", function(){ dragging=null; });
+    svg.addEventListener("pointercancel", function(){ dragging=null; });
+
+    // worked example
+    var exLine=document.getElementById("ex-line");
+    var EX=[["square","l11.exStep1"],["rectangle","l11.exStep2"],["parallelogram","l11.exStep3"],["trapezoid","l11.exStep4"]];
+    var exKey=null;
+    document.getElementById("ex-play").addEventListener("click", function(){
+      var i=0;
+      (function step(){ if(i>=EX.length){return;} morphTo(PRESETS[EX[i][0]]); exKey=EX[i][1]; exLine.textContent=I18N.t(exKey); i++; setTimeout(step,1600); })();
+    });
+
+    // quiz
+    NL.quiz(document.getElementById("quiz"), [
+      { prompt:{ en:"Which quadrilateral has 4 equal sides AND 4 right angles?", zh:"哪一種四邊形有 4 條相等的邊「和」4 個直角？" },
+        options:[ {en:"Rectangle",zh:"長方形"}, {en:"Rhombus",zh:"菱形"}, {en:"Square",zh:"正方形"}, {en:"Trapezoid",zh:"梯形"} ], answer:2,
+        explain:{ en:"A square has both: all sides equal and all angles 90°.", zh:"正方形兩者都有：四邊相等，每個角都是 90°。" } },
+      { prompt:{ en:"A shape has both pairs of opposite sides parallel but no right angles. It is a…", zh:"一個圖形兩對對邊都平行，但沒有直角。它是…" },
+        options:[ {en:"Parallelogram",zh:"平行四邊形"}, {en:"Square",zh:"正方形"}, {en:"Trapezoid",zh:"梯形"} ], answer:0,
+        explain:{ en:"Opposite sides parallel, not right-angled → parallelogram.", zh:"對邊平行、沒有直角 → 平行四邊形。" } },
+      { prompt:{ en:"How many pairs of parallel sides does a trapezoid have?", zh:"梯形有幾對平行的邊？" },
+        options:[ "0", "1", "2" ], answer:1,
+        explain:{ en:"A trapezoid has exactly one pair of parallel sides.", zh:"梯形剛好有一對平行的邊。" } }
+    ]);
+
+    document.addEventListener("langchange", function(){ renderText(); if(exKey)exLine.textContent=I18N.t(exKey); });
+    render();
+    if (window.mascot) window.mascot.say("Drag a corner and watch the shape change its name!", "拖動頂點，看看圖形的名稱怎麼變！");
+  })();
+  </script>
+</body>
+</html>

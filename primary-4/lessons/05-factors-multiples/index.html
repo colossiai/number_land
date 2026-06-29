@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Factors & Multiples</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    .mode-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 6px; }
+    .mode-tabs .btn:not(.active) { background: #fff; color: var(--brand-dk); border: 2px solid var(--brand); box-shadow: none; }
+    .rect { display: inline-grid; gap: 5px; padding: 6px; }
+    .rdot { width: 18px; height: 18px; border-radius: 5px; background: var(--brand); animation: pop .2s ease-out; }
+    .rect-cap { font-size: 1.2rem; font-weight: 800; color: var(--brand-dk); margin-top: 8px; }
+    .factor-chips { margin-top: 10px; }
+    .hundred { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; max-width: 380px; margin: 10px auto; }
+    .hc { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: .8rem;
+      font-weight: 700; background: #fff; border: 1px solid var(--line); border-radius: 6px; color: var(--ink-soft);
+      transition: transform .15s, background .15s, color .15s; }
+    .hc.mk { background: var(--brand); color: #fff; transform: scale(1.08); }
+    .hc.mj { background: var(--accent); color: #fff; }
+    .hc.both { background: var(--good); color: #fff; }
+  </style>
+</head>
+<body data-lesson="5">
+  <main>
+    <section class="panel">
+      <h2 data-i18n="ui.concept"></h2>
+      <div class="with-mascot">
+        <div data-mascot="left"></div>
+        <div class="copy">
+          <p class="lead" data-i18n="l5.intro"></p>
+          <p data-i18n="l5.intro2"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.explore"></h2>
+      <div class="mode-tabs">
+        <button class="btn active" id="tab-fac" data-i18n="l5.modeFac"></button>
+        <button class="btn" id="tab-mul" data-i18n="l5.modeMul"></button>
+      </div>
+
+      <!-- Factors -->
+      <div id="m-fac">
+        <div class="controls">
+          <label><span data-i18n="l5.number"></span>: <b id="fac-n-v">12</b></label>
+          <input type="range" id="fac-n" min="2" max="36" value="12">
+          <button class="btn accent" id="fac-play" data-i18n="ui.play"></button>
+        </div>
+        <div class="stage">
+          <div id="fac-rect"></div>
+          <div class="rect-cap" id="fac-cap"></div>
+          <div class="factor-chips" id="fac-list"></div>
+        </div>
+      </div>
+
+      <!-- Multiples -->
+      <div id="m-mul" hidden>
+        <div class="controls">
+          <label><span data-i18n="l5.mulOf"></span> <b id="mul-k-v">3</b></label>
+          <input type="range" id="mul-k" min="2" max="12" value="3">
+          <label><span data-i18n="l5.and"></span> <b id="mul-j-v">4</b></label>
+          <input type="range" id="mul-j" min="2" max="12" value="4">
+          <button class="btn accent" id="mul-go" data-i18n="l5.show"></button>
+        </div>
+        <div class="stage">
+          <div class="hundred" id="hundred"></div>
+          <div class="muted" id="mul-note"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.example"></h2>
+      <p data-i18n="l5.exTip"></p>
+      <div class="stage">
+        <div id="ex-rect"></div>
+        <div class="rect-cap" id="ex-cap"></div>
+        <div class="factor-chips" id="ex-list"></div>
+      </div>
+      <div class="row"><button class="btn accent" id="ex-next" data-i18n="ui.next.label"></button>
+        <button class="btn ghost" id="ex-reset" data-i18n="ui.reset"></button></div>
+    </section>
+
+    <section class="panel">
+      <h2 data-i18n="ui.tryIt"></h2>
+      <div id="quiz"></div>
+    </section>
+  </main>
+
+  <script src="../../assets/js/lessons-data.js"></script>
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/widgets.js"></script>
+  <script src="../../assets/js/mascot.js"></script>
+  <script src="../../assets/js/lesson.js"></script>
+  <script>
+  (function () {
+    I18N.register({
+      "l5.intro":  { en: "A <b>factor</b> of a number divides it exactly with nothing left over. We can find factors by arranging that many dots into neat rectangles.",
+                     zh: "一個數的<b>因數</b>能把它整除、沒有餘數。我們可以把那麼多的點排成整齊的長方形來找因數。" },
+      "l5.intro2": { en: "A <b>multiple</b> is what you get by counting in steps of a number: 3, 6, 9, 12 … are multiples of 3.",
+                     zh: "<b>倍數</b>是按一個數一步步數出來的：3、6、9、12 … 都是 3 的倍數。" },
+      "l5.modeFac": { en: "Factors", zh: "因數" },
+      "l5.modeMul": { en: "Multiples", zh: "倍數" },
+      "l5.number": { en: "Number", zh: "數" },
+      "l5.mulOf":  { en: "Multiples of", zh: "倍數：" },
+      "l5.and":    { en: "and", zh: "和" },
+      "l5.show":   { en: "Highlight", zh: "標示" },
+      "l5.factorsOf": { en: "Factors of {n}:", zh: "{n} 的因數：" },
+      "l5.commonNote": { en: "Green cells are common multiples of {k} and {j}. The smallest is {lcm}.",
+                         zh: "綠色格是 {k} 和 {j} 的公倍數，最小公倍數是 {lcm}。" },
+      "l5.exTip":  { en: "Press Next to find every factor of 24 by testing rectangles.",
+                     zh: "按「下一步」用長方形找出 24 的所有因數。" }
+    });
+
+    // ---------- mode switch ----------
+    var tabFac = document.getElementById("tab-fac"), tabMul = document.getElementById("tab-mul");
+    function setMode(mul) {
+      document.getElementById("m-fac").hidden = mul;
+      document.getElementById("m-mul").hidden = !mul;
+      tabFac.classList.toggle("active", !mul);
+      tabMul.classList.toggle("active", mul);
+    }
+    tabFac.addEventListener("click", function () { setMode(false); });
+    tabMul.addEventListener("click", function () { setMode(true); });
+
+    // ---------- helpers ----------
+    function arrangements(n) { // distinct rows<=cols pairs
+      var out = [];
+      for (var r = 1; r * r <= n; r++) if (n % r === 0) out.push([r, n / r]);
+      return out;
+    }
+    function factorsOf(n) {
+      var f = [];
+      for (var i = 1; i <= n; i++) if (n % i === 0) f.push(i);
+      return f;
+    }
+    function drawRect(hostEl, rows, cols) {
+      hostEl.innerHTML = "";
+      var g = document.createElement("div"); g.className = "rect";
+      g.style.gridTemplateColumns = "repeat(" + cols + ", 18px)";
+      for (var i = 0; i < rows * cols; i++) {
+        var d = document.createElement("div"); d.className = "rdot"; g.appendChild(d);
+      }
+      hostEl.appendChild(g);
+    }
+    function chip(t, cls) { var s = document.createElement("span"); s.className = "chip" + (cls ? " " + cls : ""); s.textContent = t; return s; }
+
+    // ---------- factors explore ----------
+    var facN = document.getElementById("fac-n");
+    var facRect = document.getElementById("fac-rect"), facCap = document.getElementById("fac-cap");
+    var facList = document.getElementById("fac-list");
+    var facTimer = null;
+    function facStop() { if (facTimer) { clearInterval(facTimer); facTimer = null; } }
+    function facShowList(n) {
+      facList.innerHTML = "";
+      var lab = document.createElement("span"); lab.className = "muted";
+      lab.textContent = I18N.t("l5.factorsOf").replace("{n}", n) + " ";
+      facList.appendChild(lab);
+      factorsOf(n).forEach(function (f) { facList.appendChild(chip(f)); });
+    }
+    function facPlay() {
+      facStop();
+      var n = +facN.value, arr = arrangements(n), i = 0;
+      facList.innerHTML = "";
+      function step() {
+        var a = arr[i];
+        drawRect(facRect, a[0], a[1]);
+        facCap.textContent = n + " = " + a[0] + " × " + a[1];
+        i++;
+        if (i >= arr.length) { facStop(); facShowList(n); }
+      }
+      step();
+      facTimer = setInterval(step, 900);
+    }
+    facN.addEventListener("input", function () {
+      document.getElementById("fac-n-v").textContent = facN.value;
+      facStop();
+      var n = +facN.value, a = arrangements(n)[0];
+      drawRect(facRect, a[0], a[1]); facCap.textContent = n + " = " + a[0] + " × " + a[1];
+      facShowList(n);
+    });
+    document.getElementById("fac-play").addEventListener("click", facPlay);
+
+    // ---------- multiples explore ----------
+    var mulK = document.getElementById("mul-k"), mulJ = document.getElementById("mul-j");
+    var hundred = document.getElementById("hundred");
+    var cells = [];
+    for (var c = 1; c <= 100; c++) {
+      var cell = document.createElement("div"); cell.className = "hc"; cell.textContent = c;
+      hundred.appendChild(cell); cells.push(cell);
+    }
+    function gcd(a, b) { return b ? gcd(b, a % b) : a; }
+    function lcm(a, b) { return a / gcd(a, b) * b; }
+    var mulTimer = null;
+    function mulShow() {
+      if (mulTimer) { clearInterval(mulTimer); mulTimer = null; }
+      var k = +mulK.value, j = +mulJ.value;
+      cells.forEach(function (el) { el.className = "hc"; });
+      var n = 1;
+      mulTimer = setInterval(function () {
+        if (n > 100) {
+          clearInterval(mulTimer); mulTimer = null;
+          var L = lcm(k, j);
+          document.getElementById("mul-note").textContent =
+            I18N.t("l5.commonNote").replace("{k}", k).replace("{j}", j).replace("{lcm}", L);
+          return;
+        }
+        var isK = n % k === 0, isJ = n % j === 0;
+        if (isK && isJ) cells[n - 1].classList.add("both");
+        else if (isK) cells[n - 1].classList.add("mk");
+        else if (isJ) cells[n - 1].classList.add("mj");
+        n++;
+      }, 25);
+    }
+    mulK.addEventListener("input", function () { document.getElementById("mul-k-v").textContent = mulK.value; });
+    mulJ.addEventListener("input", function () { document.getElementById("mul-j-v").textContent = mulJ.value; });
+    document.getElementById("mul-go").addEventListener("click", mulShow);
+
+    // ---------- worked example: factors of 24 ----------
+    var EXN = 24, exArr = arrangements(EXN), exIdx = 0;
+    var exFound = [];
+    function exReset() {
+      exIdx = 0; exFound = [];
+      document.getElementById("ex-rect").innerHTML = "";
+      document.getElementById("ex-cap").textContent = "";
+      document.getElementById("ex-list").innerHTML = "";
+    }
+    function exNext() {
+      if (exIdx >= exArr.length) return;
+      var a = exArr[exIdx++];
+      drawRect(document.getElementById("ex-rect"), a[0], a[1]);
+      document.getElementById("ex-cap").textContent = EXN + " = " + a[0] + " × " + a[1];
+      [a[0], a[1]].forEach(function (f) { if (exFound.indexOf(f) < 0) exFound.push(f); });
+      exFound.sort(function (x, y) { return x - y; });
+      var host = document.getElementById("ex-list"); host.innerHTML = "";
+      var lab = document.createElement("span"); lab.className = "muted";
+      lab.textContent = I18N.t("l5.factorsOf").replace("{n}", EXN) + " ";
+      host.appendChild(lab);
+      exFound.forEach(function (f) { host.appendChild(chip(f, "good")); });
+      if (exIdx >= exArr.length && window.mascot) {
+        window.mascot.setMood("celebrate");
+        window.mascot.say("24 has 8 factors!", "24 有 8 個因數！");
+        setTimeout(function(){ if(window.mascot) window.mascot.setMood("happy"); }, 1600);
+      }
+    }
+    document.getElementById("ex-next").addEventListener("click", exNext);
+    document.getElementById("ex-reset").addEventListener("click", exReset);
+
+    // ---------- quiz ----------
+    NL.quiz(document.getElementById("quiz"), [
+      { prompt: { en: "Which of these is a factor of 18?", zh: "下列哪一個是 18 的因數？" },
+        options: ["4", "5", "6", "7"], answer: 2,
+        explain: { en: "18 ÷ 6 = 3 exactly, so 6 is a factor.", zh: "18 ÷ 6 = 3 沒有餘數，所以 6 是因數。" } },
+      { prompt: { en: "What are the first three multiples of 7?", zh: "7 的首三個倍數是？" },
+        options: ["7, 14, 21", "1, 7, 14", "7, 17, 27", "14, 21, 28"], answer: 0,
+        explain: { en: "7×1, 7×2, 7×3 = 7, 14, 21.", zh: "7×1、7×2、7×3 = 7、14、21。" } },
+      { prompt: { en: "What is the greatest common factor of 12 and 18?", zh: "12 和 18 的最大公因數是？" },
+        options: ["3", "4", "6", "9"], answer: 2,
+        explain: { en: "Common factors are 1, 2, 3, 6 — the greatest is 6.", zh: "公因數有 1、2、3、6，最大是 6。" } }
+    ]);
+
+    // ---------- init + language ----------
+    document.getElementById("fac-n-v").textContent = facN.value;
+    (function () { var a = arrangements(+facN.value)[0]; drawRect(facRect, a[0], a[1]);
+      facCap.textContent = facN.value + " = " + a[0] + " × " + a[1]; facShowList(+facN.value); })();
+    exReset();
+    document.addEventListener("langchange", function () {
+      facShowList(+facN.value);
+      // refresh example factor label if shown
+      if (exFound.length) {
+        var host = document.getElementById("ex-list"); host.innerHTML = "";
+        var lab = document.createElement("span"); lab.className = "muted";
+        lab.textContent = I18N.t("l5.factorsOf").replace("{n}", EXN) + " ";
+        host.appendChild(lab);
+        exFound.forEach(function (f) { host.appendChild(chip(f, "good")); });
+      }
+    });
+    if (window.mascot) window.mascot.say("Factors and multiples are everywhere!", "因數和倍數無處不在！");
+  })();
+  </script>
+</body>
+</html>
