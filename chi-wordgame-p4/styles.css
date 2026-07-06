@@ -1,0 +1,176 @@
+:root {
+  --bg: #fef6e4;
+  --bg2: #fffaf0;
+  --primary: #ff9f68;
+  --primary-dark: #f57e42;
+  --accent: #6ec5b8;
+  --accent-dark: #3aa89a;
+  --purple: #a78bfa;
+  --ink: #4a3f35;
+  --ink-soft: #8a7d6f;
+  --correct: #6ecb63;
+  --wrong: #ff6b6b;
+  --card: #ffffff;
+  --shadow: 0 6px 0 rgba(0,0,0,0.08), 0 10px 24px rgba(0,0,0,0.08);
+  --radius: 22px;
+  --font: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Heiti TC", sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  font-family: var(--font);
+  color: var(--ink);
+  background: linear-gradient(160deg, var(--bg) 0%, #ffeccf 100%);
+  overscroll-behavior: none;
+}
+
+#app {
+  max-width: 720px;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 20px 18px 40px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- 畫面切換 ---------- */
+.screen { display: none; flex: 1; flex-direction: column; animation: fadeIn .35s ease; }
+.screen.active { display: flex; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* ---------- 開始畫面 ---------- */
+.hero { text-align: center; margin: 12px 0 22px; }
+.logo { font-size: 2.6rem; letter-spacing: 2px; }
+.subtitle { color: var(--ink-soft); font-size: 1.05rem; margin-top: 6px; }
+
+.picker-label { text-align: center; color: var(--ink-soft); margin-bottom: 14px; font-size: 1rem; }
+
+.grade-picker { margin-bottom: 22px; }
+.grade-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.grade-btn {
+  border: none; border-radius: 50px; padding: 9px 16px; font-size: .95rem; font-weight: 700;
+  background: var(--card); color: var(--ink-soft); cursor: pointer; font-family: var(--font);
+  box-shadow: 0 3px 0 rgba(0,0,0,0.06); transition: transform .1s ease;
+}
+.grade-btn:active { transform: translateY(2px); }
+.grade-btn.active { background: var(--accent); color: #fff; box-shadow: 0 3px 0 var(--accent-dark); }
+.mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+.mode-card {
+  background: var(--card);
+  border: none;
+  border-radius: var(--radius);
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform .12s ease, box-shadow .12s ease;
+  font-family: var(--font);
+}
+.mode-card:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.08); }
+.mode-icon { font-size: 2.2rem; }
+.mode-name { font-size: 1.2rem; font-weight: 700; color: var(--ink); }
+.mode-desc { font-size: .82rem; color: var(--ink-soft); text-align: center; }
+
+.best-score { text-align: center; margin-top: 24px; color: var(--ink-soft); font-size: .95rem; min-height: 1.2em; }
+
+/* ---------- 遊戲 HUD ---------- */
+.game-hud { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.btn-icon {
+  width: 44px; height: 44px; border-radius: 14px; border: none;
+  background: var(--card); color: var(--ink-soft); font-size: 1.3rem;
+  cursor: pointer; box-shadow: var(--shadow); font-family: var(--font);
+}
+.btn-icon:active { transform: translateY(3px); }
+.hud-lives { flex: 1; font-size: 1.5rem; letter-spacing: 2px; }
+.hud-stats { display: flex; flex-direction: column; align-items: flex-end; }
+.hud-score { font-size: 1.6rem; font-weight: 800; color: var(--primary-dark); }
+.hud-combo { font-size: .9rem; color: var(--accent-dark); font-weight: 700; min-height: 1.2em; }
+
+.progress-bar { height: 10px; background: #f0e2cd; border-radius: 6px; overflow: hidden; margin-bottom: 6px; }
+.progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent-dark)); border-radius: 6px; transition: width .4s ease; }
+.question-count { text-align: right; color: var(--ink-soft); font-size: .85rem; margin-bottom: 14px; }
+
+/* ---------- 題目區 ---------- */
+.question-area { flex: 1; display: flex; flex-direction: column; }
+.q-prompt { text-align: center; color: var(--ink-soft); font-size: 1.05rem; margin-bottom: 4px; }
+
+.q-char-box {
+  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 26px; text-align: center; margin-bottom: 22px;
+}
+.q-char { font-size: 6rem; line-height: 1.1; color: var(--ink); font-weight: 700; }
+.q-hint { color: var(--ink-soft); font-size: .95rem; margin-top: 8px; }
+
+.q-sentence { font-size: 1.9rem; text-align: center; line-height: 1.6; color: var(--ink); }
+.q-blank { display: inline-block; min-width: 1.4em; border-bottom: 4px dashed var(--primary); color: transparent; margin: 0 4px; }
+.q-blank.filled { color: var(--correct); border-bottom-color: var(--correct); }
+
+.q-audio-btn {
+  display: inline-flex; align-items: center; gap: 10px; margin: 6px auto 22px;
+  background: var(--accent); color: #fff; border: none; border-radius: 50px;
+  padding: 16px 30px; font-size: 1.3rem; font-weight: 700; cursor: pointer;
+  box-shadow: var(--shadow); font-family: var(--font);
+}
+.q-audio-btn:active { transform: translateY(3px); }
+
+.q-pinyin-big { font-size: 3rem; text-align: center; color: var(--accent-dark); font-weight: 700; margin-bottom: 22px; letter-spacing: 1px; }
+
+/* ---------- 選項 ---------- */
+.options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: auto; }
+.option {
+  background: var(--card); border: 3px solid transparent; border-radius: 18px;
+  padding: 22px 12px; font-size: 2rem; font-weight: 700; color: var(--ink);
+  cursor: pointer; box-shadow: var(--shadow); transition: transform .1s ease;
+  font-family: var(--font);
+}
+.option .opt-sub { display: block; font-size: .85rem; color: var(--ink-soft); font-weight: 400; margin-top: 4px; }
+.option:active { transform: translateY(3px); }
+.option.correct { border-color: var(--correct); background: #edfbe9; animation: pop .3s; }
+.option.wrong { border-color: var(--wrong); background: #ffeaea; }
+.option:disabled { cursor: default; opacity: .55; }
+.option.correct:disabled, .option.wrong:disabled { opacity: 1; }
+@keyframes pop { 0%{transform:scale(1);} 50%{transform:scale(1.08);} 100%{transform:scale(1);} }
+
+/* ---------- 回饋 ---------- */
+.feedback { min-height: 76px; margin-top: 16px; }
+.feedback-card {
+  border-radius: 16px; padding: 14px 18px; animation: fadeIn .25s;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.feedback-card.ok { background: #edfbe9; color: var(--accent-dark); }
+.feedback-card.no { background: #ffeaea; color: var(--wrong); }
+.feedback-title { font-size: 1.15rem; font-weight: 800; }
+.feedback-info { color: var(--ink); font-size: .98rem; }
+.feedback-info b { color: var(--primary-dark); }
+
+/* ---------- 結算 ---------- */
+#screen-result { justify-content: center; align-items: center; }
+.result-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 34px 26px; text-align: center; width: 100%; }
+.result-stars { font-size: 3rem; letter-spacing: 6px; margin-bottom: 8px; }
+#result-title { font-size: 1.8rem; margin-bottom: 6px; }
+.result-score { font-size: 3rem; font-weight: 800; color: var(--primary-dark); }
+.result-detail { color: var(--ink-soft); margin: 6px 0 16px; }
+.result-wrong { text-align: left; max-height: 180px; overflow-y: auto; margin-bottom: 20px; }
+.result-wrong-item { background: #fff6ec; border-radius: 12px; padding: 8px 12px; margin-bottom: 8px; font-size: .95rem; }
+.result-wrong-item .rw-char { font-size: 1.4rem; font-weight: 700; margin-right: 8px; }
+.result-actions { display: flex; flex-direction: column; gap: 12px; }
+
+.btn-primary, .btn-secondary {
+  border: none; border-radius: 50px; padding: 16px; font-size: 1.15rem; font-weight: 700;
+  cursor: pointer; font-family: var(--font); box-shadow: var(--shadow);
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-secondary { background: var(--card); color: var(--ink-soft); }
+.btn-primary:active, .btn-secondary:active { transform: translateY(3px); }
+
+@media (max-width: 380px) {
+  .q-char { font-size: 4.6rem; }
+  .mode-name { font-size: 1.05rem; }
+  .option { font-size: 1.6rem; }
+}

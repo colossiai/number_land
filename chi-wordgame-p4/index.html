@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>識字樂園 · 小學中文識字遊戲</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- 開始畫面 -->
+    <section id="screen-start" class="screen active">
+      <div class="hero">
+        <h1 class="logo">📚 識字樂園</h1>
+        <p class="subtitle">小學一至六年級 · 繁體高頻常用字</p>
+      </div>
+
+      <div class="grade-picker">
+        <p class="picker-label">選擇年級</p>
+        <div class="grade-row" id="grade-row">
+          <button class="grade-btn active" data-grade="0">全部</button>
+          <button class="grade-btn" data-grade="1">一年級</button>
+          <button class="grade-btn" data-grade="2">二年級</button>
+          <button class="grade-btn" data-grade="3">三年級</button>
+          <button class="grade-btn" data-grade="4">四年級</button>
+          <button class="grade-btn" data-grade="5">五年級</button>
+          <button class="grade-btn" data-grade="6">六年級</button>
+        </div>
+      </div>
+
+      <div class="mode-picker">
+        <p class="picker-label">選擇遊戲模式</p>
+        <div class="mode-grid">
+          <button class="mode-card" data-mode="mixed">
+            <span class="mode-icon">🎲</span>
+            <span class="mode-name">綜合挑戰</span>
+            <span class="mode-desc">五種題型隨機出現</span>
+          </button>
+          <button class="mode-card" data-mode="char2pinyin">
+            <span class="mode-icon">🔤</span>
+            <span class="mode-name">看字選音</span>
+            <span class="mode-desc">認得這個字讀甚麼嗎？</span>
+          </button>
+          <button class="mode-card" data-mode="pinyin2char">
+            <span class="mode-icon">🔊</span>
+            <span class="mode-name">聽音選字</span>
+            <span class="mode-desc">聽讀音，選出正確的字</span>
+          </button>
+          <button class="mode-card" data-mode="fillblank">
+            <span class="mode-icon">✏️</span>
+            <span class="mode-name">詞語填空</span>
+            <span class="mode-desc">把缺少的字填進詞語</span>
+          </button>
+          <button class="mode-card" data-mode="sentence">
+            <span class="mode-icon">📖</span>
+            <span class="mode-name">句子填空</span>
+            <span class="mode-desc">在句子裏認出這個字</span>
+          </button>
+          <button class="mode-card" data-mode="distinguish">
+            <span class="mode-icon">🔍</span>
+            <span class="mode-name">辨形高手</span>
+            <span class="mode-desc">從相似的字中選對的</span>
+          </button>
+          <button class="mode-card" data-mode="wrongbook">
+            <span class="mode-icon">📕</span>
+            <span class="mode-name">錯題複習</span>
+            <span class="mode-desc" id="wrongbook-count">複習做錯過的字</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="best-score" id="best-score-line"></div>
+    </section>
+
+    <!-- 遊戲畫面 -->
+    <section id="screen-game" class="screen">
+      <header class="game-hud">
+        <button class="btn-icon" id="btn-quit" title="返回">✕</button>
+        <div class="hud-lives" id="hud-lives"></div>
+        <div class="hud-stats">
+          <span class="hud-score" id="hud-score">0</span>
+          <span class="hud-combo" id="hud-combo"></span>
+        </div>
+      </header>
+
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="question-count" id="question-count"></div>
+
+      <div class="question-area" id="question-area"></div>
+
+      <div class="feedback" id="feedback"></div>
+    </section>
+
+    <!-- 結算畫面 -->
+    <section id="screen-result" class="screen">
+      <div class="result-card">
+        <div class="result-stars" id="result-stars"></div>
+        <h2 id="result-title">完成！</h2>
+        <div class="result-score" id="result-score"></div>
+        <div class="result-detail" id="result-detail"></div>
+        <div class="result-wrong" id="result-wrong"></div>
+        <div class="result-actions">
+          <button class="btn-primary" id="btn-again">再玩一次</button>
+          <button class="btn-secondary" id="btn-home">回到首頁</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="data.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
