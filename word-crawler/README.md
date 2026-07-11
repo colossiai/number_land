@@ -94,6 +94,28 @@ uv run crawl_lexlist.py --keep-non-list
 
 兩個 CSV 皆以 `UTF-8-BOM` 編碼，可直接用 Excel 開啟而不亂碼。
 
+## 在 GitHub 上瀏覽（Markdown）
+
+CSV 適合下載／匯入，但不便直接在網頁翻閱。故另附一個小工具把 CSV 轉成 GitHub
+可直接渲染的 Markdown 表格（按總筆畫分節、附目錄）：
+
+此瀏覽用的 Markdown 位於版本庫根目錄的 `香港小學學習字詞表/`（與 `word-crawler/`
+同層）。於版本庫根目錄執行：
+
+```bash
+uv run 香港小學學習字詞表/to_markdown.py   # 讀 word-crawler/out/*.csv，生成下列 Markdown
+```
+
+- **[`../香港小學學習字詞表/characters.md`](../香港小學學習字詞表/characters.md)** — 全部
+  3,129 字，按筆畫分節，檔首附目錄可跳轉；每列含部首、拼音、粵拼、階段、詞數及該字
+  全部相關詞語。
+- **[`../香港小學學習字詞表/words/`](../香港小學學習字詞表/words/)** — 相關詞語（連逐詞
+  普通話拼音／粵拼／階段），按字的筆畫分檔（`stroke-01.md` … 每檔皆小，渲染穩定），
+  另有 `README.md` 目錄。
+
+> 為何拆檔：GitHub 對過大的檔案會改顯示原始碼而不渲染。故 `words` 依筆畫拆成多個
+> 小檔（最大約 90 KB），並避免把 17,704 列塞進單一表格。
+
 ## 實際結果
 
 以下為本工具實際抓取、由 CSV 直接統計所得（非外部估算）：
