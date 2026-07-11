@@ -1,0 +1,4 @@
+# 原始 HTML 快取（可重新抓取，不入版本庫）
+cache/
+crawl.log
+out_test/
